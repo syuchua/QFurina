@@ -16,7 +16,7 @@ ADMIN_ID = config_data.get('admin_id')
 REPORT_SECRET = config_data.get('report_secret')
 PROXY_API_BASE = config_data.get('proxy_api_base')
 SYSTEM_MESSAGE = config_data.get('system_message', {})
-REPLY_PROBABILITY = config_data.get('reply_probability', 0.5)
+REPLY_PROBABILITY = config_data.get('reply_probability', 1.0)
 
 # 打印配置以验证加载正确
 if __name__ == '__main__':
