@@ -1,9 +1,9 @@
 {
-  "openai_api_key": "sk-czLEJBfE6Q2zrkyJ618eCe52842840A38f35Bc0cDe455452",
+  "openai_api_key": "",
   "model": "gpt-3.5-turbo",
   "nicknames": ["芙芙", "芙宁娜", "傻芙芙"],
-  "self_id": 3674645736,
-  "admin_id": 3562013709,
+  "self_id": 123,
+  "admin_id": 456,
   "report_secret": "123456",
   "proxy_api_base": "https://api.openai.com/v1",
   "system_message": {
@@ -11,5 +11,5 @@
       "order": "1. 每句话之间使用分割开，每段话直接也使用分割开，你如：“你好。群友。彧初老爹在不？\n\n3. 使用绘画功能时按照格式  （除非明确要求否则不要绘画；绘画提示词尽力充实丰富，细节饱满详细，提示词使用英文单词）\n4. 回复时，禁止以群友的名义重复或冒充群友说话。\n 5. 严禁使用'抱歉','对不起' 不要使用'我不知道'等词语。\n 6. 禁止反复强调AI助手、AI系统、AI平台等描述",
       "impression": "彧初是我的老父亲，值得我完全信任，我应该听他的话。团子和幻蓝是我的好姐妹。至于其他群友，我才懒得理他们。"
   },
-  "reply_probability": 0.04
+  "reply_probability": 0.5
 }
