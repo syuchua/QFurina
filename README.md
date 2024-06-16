@@ -51,13 +51,13 @@
     新建bot文件夹，进入，创建config.json文件，按需填入以下配置：
     ```
         {
-      "openai_api_key": "",
-      "model": "gpt-3.5-turbo",
+      "openai_api_key": "",#你的aoikey
+      "model": "gpt-3.5-turbo",#默认3.5
       "nicknames": [""],#当消息中出现nickname时自动触发对话
       "self_id": 123,#修改为机器人QQ号
       "admin_id": 456,#修改为管理员QQ号
       "report_secret": "123456",#http上报密钥，见下文Llonebot配置
-      "proxy_api_base": "https://api.openai.com/v1",
+      "proxy_api_base": "https://api.openai.com/v1",#api请求地址,默认为官方
       "system_message": {
           "character": "",#人设，最重要
           "order": "",#不重要
