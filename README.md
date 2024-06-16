@@ -58,9 +58,9 @@
     
     - **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本(低版本还没有测试过)。
     - **克隆本项目**
-       ```
-       git clone https://github.com/syuchua/MY_QBOT.git
-       ```
+     ```
+     git clone https://github.com/syuchua/MY_QBOT.git
+     ```
     - **创建虚拟环境**（可选）：
     
     ```
