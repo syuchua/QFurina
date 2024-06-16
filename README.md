@@ -46,21 +46,33 @@
 ## 当前支持的消息平台：
 目前仅在Windows端Llonebot上测试过，理论上所有支持oneonev11协议的消息平台都可以用，不过http对接配置可能要麻烦一点
 
-## 安装指南
-
-1. **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本。
-2. **创建虚拟环境**（可选）：
-
-```
-python -m venv venv
-source venv/bin/activate  # 对于Windows使用 venv\Scripts\activate
-```
-3. **安装依赖**：
-```
-pip install -r requirements.txt
-```
-4. **安装Llonebot**:
-[官方文档](https://llonebot.github.io/zh-CN/)
+## 部署指南
+  - ### docker部署(还未测试过)
+    新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
+    ```
+    docker-compose up -d
+    ``
+    即可，记得放行3001端口，用于跟QQ通信
+    
+  - ### 本地部署
+    
+    1. **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本(低版本还没有测试过)。
+    2. **克隆本项目**
+       ```
+       git clone https://github.com/syuchua/MY_QBOT.git
+       ```
+    4. **创建虚拟环境**（可选）：
+    
+    ```
+    python -m venv venv
+    source venv/bin/activate  # 对于Windows使用 venv\Scripts\activate
+    ```
+    4. **安装依赖**：
+    ```
+    pip install -r requirements.txt
+    ```
+ - ### 部署Llonebot:
+    [建议查看官方文档](https://llonebot.github.io/zh-CN/)
 
 ## 配置
 
