@@ -1,0 +1,30 @@
+name: Build and Publish Docker Image
+
+on:
+  push:
+    branches:
+      - master  # 触发工作流的分支
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 拉取代码仓库
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      # 登录 Docker Hub
+      - name: Log in to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+ 
+      # 构建 Docker 镜像
+      - name: Build Docker image
+        run: docker build -t $DOCKER_USERNAME/my_qbot:latest .
+
+      # 推送 Docker 镜像到 Docker Hub
+      - name: Push Docker image
+        run: docker push $DOCKER_USERNAME/my_qbot:latest
