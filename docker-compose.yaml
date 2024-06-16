@@ -1,8 +1,8 @@
 version: '3'
 services:
   qq_bot:
-    image: syuchua/qq-bot:latest
-    container_name: my_qq_bot
+    image: syuchua/my_qbot:latest
+    container_name: my_qbot
     ports:
       - "3001:3001"
     volumes:
