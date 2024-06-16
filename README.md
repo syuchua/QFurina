@@ -50,20 +50,20 @@
   - ### docker部署(还未测试过)
     新建bot文件夹，进入，创建config.json文件，按需填入以下配置：
     ```
-    {
-  "openai_api_key": "",
-  "model": "gpt-3.5-turbo",
-  "nicknames": [""],#当消息中出现nickname时自动触发对话
-  "self_id": 123,#修改为机器人QQ号
-  "admin_id": 456,#修改为管理员QQ号
-  "report_secret": "123456",#http上报密钥，见下文Llonebot配置
-  "proxy_api_base": "https://api.openai.com/v1",
-  "system_message": {
-      "character": "",#人设，最重要
-      "order": "",#不重要
-      "impression": ""#不重要
-  },
-  "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
+        {
+      "openai_api_key": "",
+      "model": "gpt-3.5-turbo",
+      "nicknames": [""],#当消息中出现nickname时自动触发对话
+      "self_id": 123,#修改为机器人QQ号
+      "admin_id": 456,#修改为管理员QQ号
+      "report_secret": "123456",#http上报密钥，见下文Llonebot配置
+      "proxy_api_base": "https://api.openai.com/v1",
+      "system_message": {
+          "character": "",#人设，最重要
+          "order": "",#不重要
+          "impression": ""#不重要
+      },
+      "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
     ```
     新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
     ```
