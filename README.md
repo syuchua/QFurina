@@ -51,23 +51,23 @@
     新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
     ```
     docker-compose up -d
-    ``
+    ```
     即可，记得放行3001端口，用于跟QQ通信
     
   - ### 本地部署
     
-    1. **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本(低版本还没有测试过)。
-    2. **克隆本项目**
+    - **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本(低版本还没有测试过)。
+    - **克隆本项目**
        ```
        git clone https://github.com/syuchua/MY_QBOT.git
        ```
-    4. **创建虚拟环境**（可选）：
+    - **创建虚拟环境**（可选）：
     
     ```
     python -m venv venv
     source venv/bin/activate  # 对于Windows使用 venv\Scripts\activate
     ```
-    4. **安装依赖**：
+    - **安装依赖**：
     ```
     pip install -r requirements.txt
     ```
