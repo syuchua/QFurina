@@ -50,7 +50,7 @@
   - ### docker部署(还未测试过)
     新建bot文件夹，进入，创建config.json文件，按需填入以下配置：
     ```
-        {
+     {
       "openai_api_key": "",#你的aoikey
       "model": "gpt-3.5-turbo",#默认3.5
       "nicknames": [""],#当消息中出现nickname时自动触发对话
@@ -64,6 +64,7 @@
           "impression": ""#不重要
       },
       "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
+     }
     ```
     新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
     ```
