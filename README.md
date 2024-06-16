@@ -33,14 +33,23 @@
 ```
 ### 简单介绍下各目录及文件：
   `app/`：一些配置和函数
+
   `app/command.py`: 用于分发命令
+
   `app/config.py`: 从config.json生成配置文件
+
   `app/message.py`: 实现发送消息，包括图片的各个函数
+
   `command/`: 一些命令有关的函数
+
   `main.py`: 主程序
+
   `receive.py`: 实现从QQ接收消息，需开放3001端口（跟Llonebot配置中对应）
+
   `lolicon.py`: 涩图接口，你懂的
+
   `proxy_openai_api.py`: 对接chatgpt用于聊天和dalle用于AI绘画，dalle默认dalle2,如果api支持，可选dalle3
+  
   `config.json`: 配置信息，必填
 
 ## 当前支持的消息平台：

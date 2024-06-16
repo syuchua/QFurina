@@ -106,11 +106,15 @@ def process_group_message(rev):
     group_id = rev['group_id']
     msg_type = 'group'
 
-    at_bot_message = f"@{SELF_ID} "
-    if user_input.startswith(at_bot_message):
-        user_input = user_input[len(at_bot_message):]
+    # 检查消息是否包含 @ 机器人的 CQ 码
+    at_bot_message = r'\[CQ:at,qq={}\]'.format(SELF_ID)
+    if re.search(at_bot_message, user_input):
+        # 去除 @ 机器人的CQ码
+        user_input = re.sub(at_bot_message, '', user_input).strip()
+        process_chat_message(rev, 'group')
+        return
 
-    if any(nickname in user_input for nickname in NICKNAMES) or user_input == at_bot_message:
+    if any(nickname in user_input for nickname in NICKNAMES) or re.match(r'^\[CQ:at,qq={}\]$'.format(SELF_ID), user_input):
         process_chat_message(rev, 'group')
     else:
         if random.random() <= REPLY_PROBABILITY:
