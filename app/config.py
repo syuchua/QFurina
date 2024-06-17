@@ -1,7 +1,7 @@
 import json
 
 # 定义配置文件的路径
-CONFIG_FILE_PATH = 'config.json'
+CONFIG_FILE_PATH = 'config/config.json'
 
 # 加载配置文件
 with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as config_file:
@@ -17,15 +17,6 @@ REPORT_SECRET = config_data.get('report_secret')
 PROXY_API_BASE = config_data.get('proxy_api_base')
 SYSTEM_MESSAGE = config_data.get('system_message', {})
 REPLY_PROBABILITY = config_data.get('reply_probability', 1.0)
-
-# 打印配置以验证加载正确
-if __name__ == '__main__':
-    print(f"OPENAI_API_KEY: {OPENAI_API_KEY}")
-    print(f"MODEL: {MODEL}")
-    print(f"NICKNAMES: {NICKNAMES}")
-    print(f"SELF_ID: {SELF_ID}")
-    print(f"ADMIN_ID: {ADMIN_ID}")
-    print(f"REPORT_SECRET: {REPORT_SECRET}")
-    print(f"PROXY_API_BASE: {PROXY_API_BASE}")
-    print(f"SYSTEM_MESSAGE: {SYSTEM_MESSAGE}")
-    print(f"REPLY_PROBABILITY: {REPLY_PROBABILITY}")
+AUDIO_SAVE_PATH = config_data.get("audio_save_path")
+VOICE_SERVICE_URL = config_data.get("voice_service_url")
+CHA_NAME = config_data.get("cha_name")
