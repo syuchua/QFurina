@@ -46,6 +46,7 @@
 ## 当前支持的消息平台：
 目前仅在Windows端Llonebot上测试过，理论上所有支持oneonev11协议的消息平台都可以用，不过http对接配置可能要麻烦一点
 
+<<<<<<< HEAD
 ## 安装指南
 
 1. **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本。
@@ -62,6 +63,53 @@ pip install -r requirements.txt #安装依赖
 ```
 4. **安装Llonebot**:
 [建议查看官方文档](https://llonebot.github.io/zh-CN/)
+=======
+## 部署指南
+  - ### docker部署(还未测试过)
+    新建bot文件夹，进入，创建config.json文件，按需填入以下配置：
+    ```
+     {
+      "openai_api_key": "",#你的aoikey
+      "model": "gpt-3.5-turbo",#默认3.5
+      "nicknames": [""],#当消息中出现nickname时自动触发对话
+      "self_id": 123,#修改为机器人QQ号
+      "admin_id": 456,#修改为管理员QQ号
+      "report_secret": "123456",#http上报密钥，见下文Llonebot配置
+      "proxy_api_base": "https://api.openai.com/v1",#api请求地址,默认为官方
+      "system_message": {
+          "character": "",#人设，最重要
+          "order": "",#不重要
+          "impression": ""#不重要
+      },
+      "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
+     }
+    ```
+    新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
+    ```
+    docker-compose up -d
+    ```
+    即可，记得放行3001端口，用于跟QQ通信
+    
+  - ### 本地部署
+    
+    - **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本(低版本还没有测试过)。
+    - **克隆本项目**
+     ```
+     git clone https://github.com/syuchua/MY_QBOT.git
+     ```
+    - **创建虚拟环境**（可选）：
+    
+    ```
+    python -m venv venv
+    source venv/bin/activate  # 对于Windows使用 venv\Scripts\activate
+    ```
+    - **安装依赖**：
+    ```
+    pip install -r requirements.txt
+    ```
+ - ### 部署Llonebot:
+    [建议查看官方文档](https://llonebot.github.io/zh-CN/)
+>>>>>>> 58635f2509f1f6b4ff77883fc47c1749cb2a6873
 
 ## 配置
 
@@ -119,8 +167,13 @@ python main.py
   - [x] 接入DALLE
   - [x] 接入图片接口
   - [x] 自定义人格
+<<<<<<< HEAD
   - [] 接入语音接口 #没有好用的免费语音接口啊，要么收费，要么没有芙芙的(悲)
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
+=======
+  - [ ] 接入语音接口
+  - [ ] 接入其他大模型
+>>>>>>> 58635f2509f1f6b4ff77883fc47c1749cb2a6873
 
 ## 贡献
 
