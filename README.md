@@ -49,18 +49,22 @@
 ## 安装指南
 
 1. **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本。
-2. **创建虚拟环境**（可选）：
+2. **克隆本项目**
+   ```
+   git clone https://github.com/syuchua/MY_QBOT.git
+   ```
+4. **创建虚拟环境**（可选）：
 
 ```
 python -m venv venv
 source venv/bin/activate  # 对于Windows使用 venv\Scripts\activate
 ```
-3. **安装依赖**：
+4. **安装依赖**：
 ```
 cd MY_QBOT # 进入项目目录
-pip install -r requirements.txt #安装依赖
+pip install -r requirements.txt 
 ```
-4. **安装Llonebot**:
+5. **安装Llonebot**:
 [建议查看官方文档](https://llonebot.github.io/zh-CN/)
 ## 部署指南
   - ### docker部署(还未测试过)
