@@ -64,6 +64,7 @@
           "impression": ""#不重要
       },
       "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
+      "r18": 2 #0为关闭r18，1开启r18，2为随机发送(慎选)
      }
     ```
     新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
