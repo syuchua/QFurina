@@ -46,7 +46,6 @@
 ## 当前支持的消息平台：
 目前仅在Windows端Llonebot上测试过，理论上所有支持oneonev11协议的消息平台都可以用，不过http对接配置可能要麻烦一点
 
-<<<<<<< HEAD
 ## 安装指南
 
 1. **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本。
@@ -63,7 +62,6 @@ pip install -r requirements.txt #安装依赖
 ```
 4. **安装Llonebot**:
 [建议查看官方文档](https://llonebot.github.io/zh-CN/)
-=======
 ## 部署指南
   - ### docker部署(还未测试过)
     新建bot文件夹，进入，创建config.json文件，按需填入以下配置：
@@ -109,7 +107,6 @@ pip install -r requirements.txt #安装依赖
     ```
  - ### 部署Llonebot:
     [建议查看官方文档](https://llonebot.github.io/zh-CN/)
->>>>>>> 58635f2509f1f6b4ff77883fc47c1749cb2a6873
 
 ## 配置
 
@@ -167,13 +164,11 @@ python main.py
   - [x] 接入DALLE
   - [x] 接入图片接口
   - [x] 自定义人格
-<<<<<<< HEAD
+
   - [] 接入语音接口 #没有好用的免费语音接口啊，要么收费，要么没有芙芙的(悲)
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
-=======
-  - [ ] 接入语音接口
-  - [ ] 接入其他大模型
->>>>>>> 58635f2509f1f6b4ff77883fc47c1749cb2a6873
+
+
 
 ## 贡献
 
