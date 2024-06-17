@@ -1,11 +1,17 @@
 # lolicon.py
+import json
+import os
 import requests
 
 API_URL = "https://api.lolicon.app/setu/v2"
-
+config_dir = os.path.join(os.path.dirname(__file__), '../config')
+    
+with open(os.path.join(config_dir, 'config.json'), 'r', encoding='utf-8') as config_file:
+    config_data = json.load(config_file)
+R18=config_data.get("r18")
 def fetch_image(keyword):
     params = {
-        'r18': 0,
+        'r18': R18,
         'tag': keyword,
         'num': 1,
         'size': 'regular',

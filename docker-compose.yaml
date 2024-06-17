@@ -1,0 +1,12 @@
+version: '3'
+services:
+  qq_bot:
+    image: syuchua/qq-bot:latest
+    container_name: my_qq_bot
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./bot:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: always

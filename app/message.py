@@ -1,15 +1,23 @@
 import json
 import logging
+import os
 import re
 import time
 import requests
 import random
-from app.config import NICKNAMES, REPLY_PROBABILITY, SELF_ID, SYSTEM_MESSAGE
-from .command import handle_command
-from lolicon import fetch_image 
-from proxy_openai_api import get_chat_response, generate_image
+from app.config import  NICKNAMES, REPLY_PROBABILITY, SELF_ID, SYSTEM_MESSAGE
+from utils.voice_service import generate_voice
+from app.command import handle_command
+from utils.lolicon import fetch_image 
+from utils.model_request import get_chat_response, generate_image
 
-def send_msg(msg_type, number, msg):
+def send_msg(msg_type, number, msg, use_voice=False):
+
+    if use_voice:
+        audio_filename = generate_voice(msg)
+        if audio_filename:
+            msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
+
     params = {
         'message': msg,
         **({'group_id': number} if msg_type == 'group' else {'user_id': number})
@@ -40,12 +48,24 @@ def send_image(msg_type, number, img_url):
         logging.error(f"发送图片失败: {e}")
         send_msg(msg_type, number, "哎呀，图片找不到了")
 
+
+def send_voice(msg_type, number, voice_text):
+    try:
+        # 尝试发送语音消息
+        send_msg(msg_type, number, voice_text, use_voice=True)
+        logging.info(f"语音消息已发送至 {number}。")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"发送语音消息失败: {e}")
+        send_msg(msg_type, number, "哎呀，语音消息无法发送")
+
 # 特殊字符命令
 COMMAND_PATTERN = re.compile(r'^[!/#](help|reset|character)(?:\s+(.+))?')
 # 图片关键词和绘画关键词
 IMAGE_KEYWORDS = ["发一张", "来一张"]
 RANDOM_IMAGE_KEYWORDS = ["再来一张", "来份涩图", "来份色图"]
 DRAW_KEYWORDS = ["画一张", "生成一张"]
+# 添加语音关键词
+VOICE_KEYWORDS = ["语音回复", "用声音说", "语音说"]
 
 def process_chat_message(rev, msg_type):
     global last_activity_time
@@ -81,6 +101,13 @@ def process_chat_message(rev, msg_type):
             prompt = user_input.replace(keyword, '').strip()
             image_url = generate_image(prompt)
             send_image(msg_type, recipient_id, image_url)
+            return
+
+    # 检查是否是语音合成关键词
+    for keyword in VOICE_KEYWORDS:
+        if keyword in user_input:
+            voice_text = user_input.replace(keyword, '').strip()
+            send_msg(msg_type, recipient_id, voice_text, use_voice=True)
             return
 
     # 不匹配以上关键词时处理普通消息
