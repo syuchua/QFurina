@@ -1,81 +1,96 @@
 import logging
 import signal
 import sys
-import threading
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from wsgiref.simple_server import make_server
-
 from flask import app
-from waitress import serve
 from app.message import process_group_message, process_private_message
-from utils.receive import rev_msg  
+from app.config import Config
+from utils.receive import start_server, rev_msg  # 调整为导入 start_server 和 rev_msg
 
-# 全局变量，用于控制循环
+# 全局变量用于控制循环
 running = True
 
+# 信号处理函数
 def signal_handler(sig, frame):
     global running
     print("收到终止信号，正在退出...")
     logging.info("收到终止信号，正在退出...")
     running = False
 
-class ServerThread(threading.Thread):
-
+# 运行 Flask 应用线程池以保持与原逻辑一致
+class FlaskServer:
     def __init__(self, app):
-        threading.Thread.__init__(self)
-        self.srv = make_server('127.0.0.1', 4321, app)
-        self.srv.timeout = 1
-        self._is_shut_down = threading.Event()
-        self._shutdown_request = False
+        self.server = None
+        self.app = app
+
+    def start(self):
+        self.server = make_server('127.0.0.1', 4321, self.app)
+        self.server.timeout = 1
+        self.thread = ThreadPoolExecutor().submit(self.run)
 
     def run(self):
         logging.info("启动 Flask 应用程序...")
-        while not self._shutdown_request:
-            self.srv.handle_request()
-        self._is_shut_down.set()
+        while running:
+            self.server.handle_request()
 
     def shutdown(self):
         logging.info("关闭 Flask 应用程序...")
-        self._shutdown_request = True
-        self._is_shut_down.wait()
+        self.server.server_close()
 
-def run_flask_app():
-    server = ServerThread(app)
-    server.start()
-    return server
-
-def main_loop():
+# 异步消息处理逻辑
+async def main_loop():
+    global running
     print("程序已启动，正在监听消息...")
     logging.info("程序已启动，正在监听消息...")
+
     while running:
         try:
-            rev = rev_msg()  # 假设这个函数已经定义了
+            rev = await rev_msg()  # 使用异步版本的消息接收函数
             if rev and 'message_type' in rev:
                 message_type = rev.get('message_type')
                 if message_type == "private":
-                    process_private_message(rev)  # 假设这个函数已经定义了
+                    await process_private_message(rev)  # 假设这个函数已经异步定义了
                 elif message_type == "group":
-                    process_group_message(rev)  # 假设这个函数已经定义了
+                    await process_group_message(rev)  # 假设这个函数已经异步定义了
             else:
                 logging.info("没有收到消息或消息格式不正确，跳过此次循环。")
         except Exception as e:
             logging.error(f"Error in main loop: {e}")
 
+async def main():
+    global running
+    flask_server = FlaskServer(app)
+
+    try:
+        # 启动 Flask 应用
+        flask_server.start()
+
+        # 启动消息服务器和异步消息接收循环
+        await asyncio.gather(
+            start_server(),  # 启动异步服务器并等待
+            main_loop()  # 启动主循环处理消息
+        )
+    finally:
+        # 确保 Flask 应用被关闭
+        flask_server.shutdown()
+
 if __name__ == '__main__':
     # 注册信号处理函数
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
-    # 启动 Flask 应用的线程
-    server = run_flask_app()
 
-    # 进入主循环
-    main_loop()
+    # 读取配置
+    config = Config.get_instance()
+
+    try:
+        # 运行主异步任务
+        asyncio.run(main())
+    except Exception as e:
+        logging.error("Main loop encountered an error: {}".format(e))
+
     print("程序已停止。")
     logging.info("程序已停止。")
-
-    # 确保 Flask 服务停止
-    if server.is_alive():
-        server.shutdown()
-        server.join()
 
     sys.exit(0)

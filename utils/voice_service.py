@@ -3,9 +3,15 @@ import time
 import random
 import requests
 import logging
-from app.config import AUDIO_SAVE_PATH, VOICE_SERVICE_URL, CHA_NAME
+from app.config import Config
 
-def generate_voice(text, cha_name=CHA_NAME):
+# 获取配置实例
+config = Config.get_instance()
+
+def generate_voice(text, cha_name=None):
+    if cha_name is None:
+        cha_name = config.CHA_NAME
+    
     tts_data = {
         "cha_name": cha_name,
         "text": text.replace("...", "…").replace("…", ","),
@@ -13,7 +19,7 @@ def generate_voice(text, cha_name=CHA_NAME):
     }
     
     try:
-        response = requests.post(url=VOICE_SERVICE_URL, json=tts_data)
+        response = requests.post(url=config.VOICE_SERVICE_URL, json=tts_data)
         response.raise_for_status()  # 确保请求成功
     except requests.exceptions.HTTPError as e:
         logging.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
@@ -23,7 +29,7 @@ def generate_voice(text, cha_name=CHA_NAME):
         return None
 
     filename = '%stts%d.wav' % (time.strftime('%F') + '-' + time.strftime('%T').replace(':', '-'), random.randrange(10000, 99999))
-    file_path = os.path.join(AUDIO_SAVE_PATH, filename)
+    file_path = os.path.join(config.AUDIO_SAVE_PATH, filename)
     
     try:
         with open(file_path, 'wb') as file:
