@@ -50,7 +50,6 @@
   - ### docker部署(还未测试过)
     先运行如下命令建立相关目录与文件：
     ```
-<<<<<<< HEAD
     mkdir bot && cd bot
     mkdir config && cd config
     vim config.json
@@ -77,24 +76,6 @@
     回到上一级目录
     ```
     vim docker-compose.yaml
-=======
-     {
-      "openai_api_key": "",#你的aoikey
-      "model": "gpt-3.5-turbo",#默认3.5
-      "nicknames": [""],#当消息中出现nickname时自动触发对话
-      "self_id": 123,#修改为机器人QQ号
-      "admin_id": 456,#修改为管理员QQ号
-      "report_secret": "123456",#http上报密钥，见下文Llonebot配置
-      "proxy_api_base": "https://api.openai.com/v1",#api请求地址,默认为官方
-      "system_message": {
-          "character": "",#人设，最重要
-          "order": "",#不重要
-          "impression": ""#不重要
-      },
-      "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
-      "r18": 2 #0为关闭r18，1开启r18，2为随机发送(慎选)
-     }
->>>>>>> 3f7974bfabac2b03626d31aaa896c1cf1c0a303f
     ```
     新建docker-compose.yaml文件，将项目内的复制过去，或者直接下载项目内的，copy到服务器上，执行
     ```
@@ -124,15 +105,6 @@
     ```
     pip install -r requirements.txt
     ```
-<<<<<<< HEAD
-=======
-  - **运行**
-    ```
-    python main.py
-    ```
- - ### 部署Llonebot:
-    [建议查看官方文档](https://llonebot.github.io/zh-CN/)
->>>>>>> 3f7974bfabac2b03626d31aaa896c1cf1c0a303f
 
   ## 配置
 
