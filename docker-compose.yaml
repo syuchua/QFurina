@@ -10,3 +10,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     restart: always
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3f7974bfabac2b03626d31aaa896c1cf1c0a303f

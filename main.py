@@ -4,11 +4,18 @@ import sys
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from wsgiref.simple_server import make_server
+<<<<<<< HEAD
 from flask import app  # 确保从正确的模块中导入 Flask 应用实例
 from app.message import process_group_message, process_private_message
 from app.config import Config
 from utils.receive import start_server, rev_msg  # 调整为导入 start_server 和 rev_msg
 from commands.reset import session_timeout_check  # 导入 session_timeout_check
+=======
+from flask import app
+from app.message import process_group_message, process_private_message
+from app.config import Config
+from utils.receive import start_server, rev_msg  # 调整为导入 start_server 和 rev_msg
+>>>>>>> 3f7974bfabac2b03626d31aaa896c1cf1c0a303f
 
 # 全局变量用于控制循环
 running = True
@@ -68,11 +75,18 @@ async def main():
         # 启动 Flask 应用
         flask_server.start()
 
+<<<<<<< HEAD
         # 启动消息服务器、异步消息接收循环和会话超时检查任务
         await asyncio.gather(
             start_server(),  # 启动异步服务器并等待
             main_loop(),  # 启动主循环处理消息
             session_timeout_check()  # 启动会话超时检查任务
+=======
+        # 启动消息服务器和异步消息接收循环
+        await asyncio.gather(
+            start_server(),  # 启动异步服务器并等待
+            main_loop()  # 启动主循环处理消息
+>>>>>>> 3f7974bfabac2b03626d31aaa896c1cf1c0a303f
         )
     finally:
         # 确保 Flask 应用被关闭
