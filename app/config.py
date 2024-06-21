@@ -1,22 +1,46 @@
 import json
 
-# 定义配置文件的路径
-CONFIG_FILE_PATH = 'config/config.json'
+class Config:
+    _instance = None
 
-# 加载配置文件
-with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as config_file:
-    config_data = json.load(config_file)
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
-# 提取配置信息
-OPENAI_API_KEY = config_data.get('openai_api_key')
-MODEL = config_data.get('model')
-NICKNAMES = config_data.get('nicknames', [])
-SELF_ID = config_data.get('self_id')
-ADMIN_ID = config_data.get('admin_id')
-REPORT_SECRET = config_data.get('report_secret')
-PROXY_API_BASE = config_data.get('proxy_api_base')
-SYSTEM_MESSAGE = config_data.get('system_message', {})
-REPLY_PROBABILITY = config_data.get('reply_probability', 1.0)
-AUDIO_SAVE_PATH = config_data.get("audio_save_path")
-VOICE_SERVICE_URL = config_data.get("voice_service_url")
-CHA_NAME = config_data.get("cha_name")
+    def __init__(self):
+        if Config._instance is not None:
+            raise Exception("This class is a singleton!")
+        else:
+            self.load_config()
+
+    def load_config(self):
+        CONFIG_FILE_PATH = 'config/config.json'
+        MODEL_CONFIG_PATH = 'config/model.json'
+
+        with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as config_file:
+            self.config_data = json.load(config_file)
+
+        with open(MODEL_CONFIG_PATH, 'r', encoding='utf-8') as model_config_file:
+            self.model_config_data = json.load(model_config_file)
+
+        self.NICKNAMES = self.config_data.get('nicknames', [])
+        self.REPLY_PROBABILITY = self.config_data.get('reply_probability', 1.0)
+        self.SELF_ID = self.config_data.get('self_id')
+        self.ADMIN_ID = self.config_data.get('admin_id')
+        self.REPORT_SECRET = self.config_data.get('report_secret')
+        self.PROXY_API_BASE = self.config_data.get('proxy_api_base')
+        self.SYSTEM_MESSAGE = self.config_data.get('system_message', {})
+        self.OPENAI_API_KEY = self.config_data.get('openai_api_key')
+        self.MODEL_NAME = self.model_config_data.get('model')
+        self.AUDIO_SAVE_PATH = self.config_data.get('audio_save_path')
+        self.VOICE_SERVICE_URL = self.config_data.get('voice_service_url')
+        self.CHA_NAME = self.config_data.get('cha_name')
+        self.R18 = self.config_data.get('r18')
+
+    def reload_config(self):
+        self.load_config()
+
+# 获取配置实例
+config = Config.get_instance()
