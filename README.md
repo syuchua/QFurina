@@ -151,7 +151,6 @@ python main.py
   - R-18?
   该接口的涩图数量足有十几万，其中r18占27.8%，建议公共场合尽量设置为0，2的话，还是不要太相信自己的运气了(问就是惨痛的教训)
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616002550.png)
-  ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001941.png)
 
 
 ## 命令功能
