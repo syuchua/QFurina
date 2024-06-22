@@ -149,7 +149,7 @@ python main.py
   - 发送`画一张`，`生成一张` 即可发送AI绘画
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001253.png)
   - R-18?
-  找到lolicon.py fetch_image函数的这一部分，修改r18的值，0为关闭r18，1开启r18，2为随机发送，该接口的涩图数量足有十几万，其中r18占27.8%，建议公共场合尽量设置为0，2的话，还是不要太相信自己的运气了(问就是惨痛的教训)
+  该接口的涩图数量足有十几万，其中r18占27.8%，建议公共场合尽量设置为0，2的话，还是不要太相信自己的运气了(问就是惨痛的教训)
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616002550.png)
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001941.png)
 
