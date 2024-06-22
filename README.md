@@ -124,9 +124,11 @@
   - `cha_name`：语音接口相关，暂不可用
  - ### 部署Llonebot:
     [建议查看官方文档](https://llonebot.github.io/zh-CN/)
+
    
   ### 一个api中转站点(如果有需求的话可以看看，支持各种主流模型)
   [点我跳转](https://ngedlktfticp.cloud.sealos.io/register?aff=DEAp)
+  
 
   配置Llonebot: 如图
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240615234833.png)
