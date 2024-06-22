@@ -54,6 +54,16 @@ async def send_image(msg_type, number, img_url):
         # 向用户反馈具体的错误详情
         await send_msg(msg_type, number, "出现了一些意外情况，图片发送失败。")
 
+async def send_voice(msg_type, number, voice_text):
+    audio_filename = await generate_voice(voice_text)
+    if audio_filename:
+        voice_msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
+        await send_msg(msg_type, number, voice_msg)
+        logging.info(f"Voice message sent to {number}.")
+    else:
+        logging.error(f"Failed to generate voice message for text: {voice_text}")
+        await send_msg(msg_type, number, "语音合成失败，请稍后再试。")
+
 # 特殊字符命令
 COMMAND_PATTERN = re.compile(r'^[!/#](help|reset|character)(?:\s+(.+))?')
 # 图片关键词和绘画关键词
@@ -63,8 +73,16 @@ DRAW_KEYWORDS = ["画一张", "生成一张"]
 # 添加语音关键词
 VOICE_KEYWORDS = ["语音回复", "用声音说", "语音说"]
 
+def get_dialogue_response(user_input):
+    for dialogue in config.DIALOGUES:
+        if dialogue["user"] == user_input:
+            return dialogue["assistant"]
+    return None
+
 async def process_chat_message(rev, msg_type):
     user_input = rev['raw_message']
+    user_id = rev['sender']['user_id']
+    username = rev['sender']['nickname']  # 获取群友的昵称
     recipient_id = rev['sender']['user_id'] if msg_type == 'private' else rev['group_id']
 
     # 检查是否是特殊字符命令
@@ -105,18 +123,30 @@ async def process_chat_message(rev, msg_type):
             await send_msg(msg_type, recipient_id, voice_text, use_voice=True)
             return
 
-    # 不匹配以上关键词时处理普通消息
-    system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
-    messages = [
-        {"role": "system", "content": system_message_text},
-        {"role": "user", "content": user_input}
-    ]
-    try:
-        response_text = await get_chat_response(messages)
-        await send_msg(msg_type, recipient_id, response_text)
-    except Exception as e:
-        logging.error(f"Error processing message: {e}")
-        await send_msg(msg_type, recipient_id, "阿巴阿巴，出错了。")
+
+    # 从对话记录中获取预定回复（仅限管理员触发）
+    response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
+    if response_text is None:
+        # 不匹配以上关键词时处理普通消息
+        system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
+        messages = [
+            {"role": "system", "content": system_message_text},
+            {"role": "user", "content": user_input}
+        ]
+        try:
+            response_text = await get_chat_response(messages)
+        except Exception as e:
+            logging.error(f"Error processing message: {e}")
+            await send_msg(msg_type, recipient_id, "阿巴阿巴，出错了。")
+
+    # 替换管理员称呼
+    if user_id == config.ADMIN_ID:
+        admin_title = random.choice(config.ADMIN_TITLES)
+        response_with_username = f"{admin_title}，{response_text}"
+    else:
+        response_with_username = f"{username}，{response_text}"
+
+    await send_msg(msg_type, recipient_id, response_with_username)
 
 async def process_private_message(rev):
     print(f"Received private message from user {rev['sender']['user_id']}: {rev['raw_message']}")
@@ -126,6 +156,8 @@ async def process_group_message(rev):
     print(f"Received group message in group {rev['group_id']}: {rev['raw_message']}")
     user_input = rev['raw_message']
     group_id = rev['group_id']
+    user_id = rev['sender']['user_id']
+    username = rev['sender']['nickname']  # 获取群友的昵称
     msg_type = 'group'
 
     # 检查消息是否包含 @ 机器人的 CQ 码
@@ -146,4 +178,11 @@ async def process_group_message(rev):
                 {"role": "user", "content": user_input}
             ]
             response_text = await get_chat_response(messages)
-            await send_msg('group', group_id, response_text)
+            # 替换管理员称呼
+            if user_id == config.ADMIN_ID:
+                admin_title = random.choice(config.ADMIN_TITLES)
+                response_with_username = f"{admin_title}，{response_text}"
+            else:
+                response_with_username = f"{username}，{response_text}"
+
+            await send_msg('group', group_id, response_with_username)

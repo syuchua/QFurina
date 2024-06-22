@@ -18,6 +18,8 @@ class Config:
     def load_config(self):
         CONFIG_FILE_PATH = 'config/config.json'
         MODEL_CONFIG_PATH = 'config/model.json'
+        DIALOGUES_PATH = 'config/dialogues.json'
+
 
         with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as config_file:
             self.config_data = json.load(config_file)
@@ -38,6 +40,10 @@ class Config:
         self.VOICE_SERVICE_URL = self.config_data.get('voice_service_url')
         self.CHA_NAME = self.config_data.get('cha_name')
         self.R18 = self.config_data.get('r18')
+        self.ADMIN_TITLES = self.config_data.get('admin_titles')
+
+        with open(DIALOGUES_PATH, 'r', encoding='utf-8') as f:
+            self.DIALOGUES = json.load(f)
 
     def reload_config(self):
         self.load_config()
