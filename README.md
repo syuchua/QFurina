@@ -130,7 +130,7 @@
   [点我跳转](https://ngedlktfticp.cloud.sealos.io/register?aff=DEAp)
   
 
-  配置Llonebot: 如图
+  ### 配置Llonebot: 如图
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240615234833.png)
 ## 运行机器人
 
