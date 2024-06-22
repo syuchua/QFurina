@@ -55,14 +55,20 @@ async def send_image(msg_type, number, img_url):
         await send_msg(msg_type, number, "出现了一些意外情况，图片发送失败。")
 
 async def send_voice(msg_type, number, voice_text):
-    audio_filename = await generate_voice(voice_text)
-    if audio_filename:
-        voice_msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
-        await send_msg(msg_type, number, voice_msg)
-        logging.info(f"Voice message sent to {number}.")
-    else:
-        logging.error(f"Failed to generate voice message for text: {voice_text}")
-        await send_msg(msg_type, number, "语音合成失败，请稍后再试。")
+    try:
+        audio_filename = await generate_voice(voice_text)
+        if audio_filename:
+            voice_msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
+            await send_msg(msg_type, number, voice_msg)
+            logging.info(f"Voice message sent to {number}.")
+        else:
+            logging.error(f"Failed to generate voice message for text: {voice_text}")
+            await send_msg(msg_type, number, "语音合成失败，请稍后再试。")
+    except aiohttp.ClientError as e:
+        logging.error(f"Failed to send voice message due to HTTP error: {e}")
+        # 向用户反馈具体的错误详情
+        await send_msg(msg_type, number, "发送语音失败，请检查网络或稍后再试。")
+
 
 # 特殊字符命令
 COMMAND_PATTERN = re.compile(r'^[!/#](help|reset|character)(?:\s+(.+))?')
