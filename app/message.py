@@ -86,6 +86,10 @@ def get_dialogue_response(user_input):
     return None
 
 async def process_chat_message(rev, msg_type):
+
+    global last_activity_time
+    last_activity_time = time.time()  # 每次处理消息时重新计时
+    
     user_input = rev['raw_message']
     user_id = rev['sender']['user_id']
     username = rev['sender']['nickname']  # 获取群友的昵称
