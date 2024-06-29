@@ -28,4 +28,8 @@ async def handle_command(command, msg_type, recipient_id, send_msg):
         else:
             await send_msg(msg_type, recipient_id, "Usage: /r18 <mode>，其中 <mode> 可以是 0, 1 或 2")
     else:
+<<<<<<< HEAD
         await send_msg(msg_type, recipient_id, "未知的命令。使用 'help' 命令获取帮助信息。")
+=======
+        await send_msg(msg_type, recipient_id, "未知的命令。使用 'help' 命令获取帮助信息。")
+>>>>>>> c9fa74a7870c6faf222069815b62223fe24ca81c
