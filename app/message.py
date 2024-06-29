@@ -1,20 +1,20 @@
-import json
 import logging
-import os
 import re
 import time
-import requests
+import aiohttp
 import random
-from app.config import  NICKNAMES, REPLY_PROBABILITY, SELF_ID, SYSTEM_MESSAGE
-from utils.voice_service import generate_voice
+import asyncio
+from app.config import Config
 from app.command import handle_command
-from utils.lolicon import fetch_image 
-from utils.model_request import get_chat_response, generate_image
+from utils.voice_service import generate_voice
+from utils.model_request import get_chat_response
+from app.function_calling import handle_image_request, handle_voice_request, handle_image_recognition
 
-def send_msg(msg_type, number, msg, use_voice=False):
+config = Config.get_instance()
 
+async def send_msg(msg_type, number, msg, use_voice=False):
     if use_voice:
-        audio_filename = generate_voice(msg)
+        audio_filename = await generate_voice(msg)
         if audio_filename:
             msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
 
@@ -25,130 +25,147 @@ def send_msg(msg_type, number, msg, use_voice=False):
     url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
 
     try:
-        res = requests.post(url, json=params)
-        res.raise_for_status()
-        logging.info(f"Message sent successfully: {msg}")
-    except requests.exceptions.HTTPError as e:
-        logging.error(f"HTTP error occurred: {e.response.status_code} - {e}")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Request exception occurred: {e}")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=params) as res:
+                res.raise_for_status()
+                logging.info(f"Message sent successfully: {msg}")
+                try:
+                    print(f"\nsend_{msg_type}_msg: {msg}\n", await res.json())
+                except aiohttp.ClientResponseError:
+                    print(f"\nsend_{msg_type}_msg: {msg}\n", await res.text())
+    except aiohttp.ClientError as e:
+        logging.error(f"HTTP error occurred: {e}")
 
+async def send_image(msg_type, number, img_url):
     try:
-        print(f"send_{msg_type}_msg: {msg}", json.loads(res.content))
-    except json.JSONDecodeError:
-        print(f"send_{msg_type}_msg: {msg}", res.content)
-
-def send_image(msg_type, number, img_url):
-    try:
-        # 尝试发送图片消息
         image_msg = f"[CQ:image,file={img_url}]"
-        send_msg(msg_type, number, image_msg)
-        logging.info(f"图片已发送至 {number}。")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"发送图片失败: {e}")
-        send_msg(msg_type, number, "哎呀，图片找不到了")
+        await send_msg(msg_type, number, image_msg)
+        logging.info(f"Image sent to {number}.")
+    except aiohttp.ClientError as e:
+        logging.error(f"Failed to send image due to HTTP error: {e}")
+        await send_msg(msg_type, number, "发送图片失败，请检查网络或稍后再试。")
+    except asyncio.TimeoutError as e:
+        logging.error(f"Failed to send image due to timeout: {e}")
+        await send_msg(msg_type, number, "发送图片超时，请稍后再试。")
+    except Exception as e:
+        logging.error(f"Failed to send image due to an unexpected error: {e}")
+        await send_msg(msg_type, number, "出现了一些意外情况，图片发送失败。")
 
-
-def send_voice(msg_type, number, voice_text):
+async def send_voice(msg_type, number, voice_text):
     try:
-        # 尝试发送语音消息
-        send_msg(msg_type, number, voice_text, use_voice=True)
-        logging.info(f"语音消息已发送至 {number}。")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"发送语音消息失败: {e}")
-        send_msg(msg_type, number, "哎呀，语音消息无法发送")
+        audio_filename = await generate_voice(voice_text)
+        if audio_filename:
+            voice_msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
+            await send_msg(msg_type, number, voice_msg)
+            logging.info(f"Voice message sent to {number}.")
+        else:
+            logging.error(f"Failed to generate voice message for text: {voice_text}")
+            await send_msg(msg_type, number, "语音合成失败，请稍后再试。")
+    except aiohttp.ClientError as e:
+        logging.error(f"Failed to send voice message due to HTTP error: {e}")
+        await send_msg(msg_type, number, "发送语音失败，请检查网络或稍后再试。")
 
-# 特殊字符命令
+def get_dialogue_response(user_input):
+    for dialogue in config.DIALOGUES:
+        if dialogue["user"] == user_input:
+            return dialogue["assistant"]
+    return None
+
 COMMAND_PATTERN = re.compile(r'^[!/#](help|reset|character)(?:\s+(.+))?')
-# 图片关键词和绘画关键词
-IMAGE_KEYWORDS = ["发一张", "来一张"]
-RANDOM_IMAGE_KEYWORDS = ["再来一张", "来份涩图", "来份色图"]
-DRAW_KEYWORDS = ["画一张", "生成一张"]
-# 添加语音关键词
-VOICE_KEYWORDS = ["语音回复", "用声音说", "语音说"]
 
-def process_chat_message(rev, msg_type):
-    global last_activity_time
-    last_activity_time = time.time()  # 每次处理消息时重新计时
+async def process_chat_message(rev, msg_type):
 
     user_input = rev['raw_message']
+    user_id = rev['sender']['user_id']
+    username = rev['sender']['nickname']  # 获取群友的昵称
     recipient_id = rev['sender']['user_id'] if msg_type == 'private' else rev['group_id']
 
+    # 处理命令请求
     # 检查是否是特殊字符命令
     match = COMMAND_PATTERN.match(user_input)
     if match:
         command = match.group(1)
-        handle_command(command, msg_type, recipient_id, send_msg)
+        command_args = match.group(2)
+        full_command = f"{command} {command_args}" if command_args else command
+        await handle_command(full_command, msg_type, recipient_id, send_msg)
         return
 
-    # 检查是否是图片关键词
-    for keyword in IMAGE_KEYWORDS:
-        if keyword in user_input:
-            keyword_value = user_input.split(keyword, 1)[1].strip() if keyword in user_input else ""
-            image_url = fetch_image(keyword_value)
-            send_image(msg_type, recipient_id, image_url)
-            return
+    # 处理图片请求
+    image_url = await handle_image_request(user_input)
+    if image_url:
+        await send_image(msg_type, recipient_id, image_url)
+        return
 
-    for keyword in RANDOM_IMAGE_KEYWORDS:
-        if keyword in user_input:
-            image_url = fetch_image("")
-            send_image(msg_type, recipient_id, image_url)
-            return
+    # 处理语音请求
+    voice_url = await handle_voice_request(user_input)
+    if voice_url:
+        await send_msg(msg_type, recipient_id, voice_url, use_voice=True)
+        return
 
-    # 检查是否是 DALL-E 绘画关键词
-    for keyword in DRAW_KEYWORDS:
-        if keyword in user_input:
-            prompt = user_input.replace(keyword, '').strip()
-            image_url = generate_image(prompt)
-            send_image(msg_type, recipient_id, image_url)
-            return
+    # 处理图片识别请求
+    recognition_result = await handle_image_recognition(user_input)
+    if recognition_result:
+        await send_msg(msg_type, recipient_id, f"识别结果：{recognition_result}")
+        return
 
-    # 检查是否是语音合成关键词
-    for keyword in VOICE_KEYWORDS:
-        if keyword in user_input:
-            voice_text = user_input.replace(keyword, '').strip()
-            send_msg(msg_type, recipient_id, voice_text, use_voice=True)
-            return
+    # 从对话记录中获取预定回复（仅限管理员触发）
+    response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
+    if response_text is None:
+        system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
+        messages = [
+            {"role": "system", "content": system_message_text},
+            {"role": "user", "content": user_input}
+        ]
+        try:
+            response_text = await get_chat_response(messages)
+        except Exception as e:
+            logging.error(f"Error processing message: {e}")
+            await send_msg(msg_type, recipient_id, "阿巴阿巴，出错了。")
 
-    # 不匹配以上关键词时处理普通消息
-    system_message_text = "\n".join(SYSTEM_MESSAGE.values())
-    messages = [
-        {"role": "system", "content": system_message_text},
-        {"role": "user", "content": user_input}
-    ]
-    try:
-        response_text = get_chat_response(messages)
-        send_msg(msg_type, recipient_id, response_text)
-    except Exception as e:
-        logging.error(f"Error processing message: {e}")
-        send_msg(msg_type, recipient_id, "阿巴阿巴，出错了。")
+    # 替换管理员称呼
+    if user_id == config.ADMIN_ID:
+        admin_title = random.choice(config.ADMIN_TITLES)
+        response_with_username = f"{admin_title}，{response_text}"
+    else:
+        response_with_username = f"{username}，{response_text}"
 
-def process_private_message(rev):
-    print(f"Received private message from user {rev['sender']['user_id']}: {rev['raw_message']}")
-    process_chat_message(rev, 'private')
+    await send_msg(msg_type, recipient_id, response_with_username)
 
-def process_group_message(rev):
-    print(f"Received group message in group {rev['group_id']}: {rev['raw_message']}")
+async def process_private_message(rev):
+    print(f"\nReceived private message from user {rev['sender']['user_id']}: {rev['raw_message']}\n")
+    await process_chat_message(rev, 'private')
+
+async def process_group_message(rev):
+    print(f"\nReceived group message in group {rev['group_id']}: {rev['raw_message']}\n")
     user_input = rev['raw_message']
     group_id = rev['group_id']
+    user_id = rev['sender']['user_id']
+    username = rev['sender']['nickname']  # 获取群友的昵称
     msg_type = 'group'
 
     # 检查消息是否包含 @ 机器人的 CQ 码
-    at_bot_message = r'\[CQ:at,qq={}\]'.format(SELF_ID)
+    at_bot_message = r'\[CQ:at,qq={}\]'.format(config.SELF_ID)
     if re.search(at_bot_message, user_input):
         # 去除 @ 机器人的CQ码
         user_input = re.sub(at_bot_message, '', user_input).strip()
-        process_chat_message(rev, 'group')
+        await process_chat_message(rev, 'group')
         return
 
-    if any(nickname in user_input for nickname in NICKNAMES) or re.match(r'^\[CQ:at,qq={}\]$'.format(SELF_ID), user_input):
-        process_chat_message(rev, 'group')
+    if any(nickname in user_input for nickname in config.NICKNAMES) or re.match(r'^\[CQ:at,qq={}\]$'.format(config.SELF_ID), user_input):
+        await process_chat_message(rev, 'group')
     else:
-        if random.random() <= REPLY_PROBABILITY:
-            system_message_text = "\n".join(SYSTEM_MESSAGE.values())
+        if random.random() <= config.REPLY_PROBABILITY:
+            system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
             messages = [
                 {"role": "system", "content": system_message_text},
                 {"role": "user", "content": user_input}
             ]
-            response_text = get_chat_response(messages)
-            send_msg('group', group_id, response_text)
+            response_text = await get_chat_response(messages)
+            # 替换管理员称呼
+            if user_id == config.ADMIN_ID:
+                admin_title = random.choice(config.ADMIN_TITLES)
+                response_with_username = f"{admin_title}，{response_text}"
+            else:
+                response_with_username = f"{username}，{response_text}"
+
+            await send_msg('group', group_id, response_with_username)

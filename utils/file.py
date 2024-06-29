@@ -19,9 +19,9 @@ CORS(app)
 @app.route('/data/voice/<filename>', methods=['GET', 'POST'])
 def voice_files(filename):
     print("用户请求文件：",filename)
-    if os.path.exists(os.path.join('../data/voice/', filename)):
+    if os.path.exists(os.path.join('data/voice/', filename)):
         # 发送文件作为响应
-        return send_from_directory('../data/voice/', filename, as_attachment=True)
+        return send_from_directory('data/voice/', filename, as_attachment=True)
     else:
         # 文件不存在时返回404错误
         return 'File not found', 404

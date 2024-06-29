@@ -8,10 +8,4 @@ venv
 *.sqlite3
 .DS_Store
 .git
-<<<<<<< HEAD
 .gitignore
-=======
-.gitignore
-dist
-build
->>>>>>> 58635f2509f1f6b4ff77883fc47c1749cb2a6873

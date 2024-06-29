@@ -2,6 +2,7 @@
   "python.analysis.extraPaths": [
     "./utils",
     "./app",
-    "./command"
+    "./command",
+    "./utils"
   ]
 }
