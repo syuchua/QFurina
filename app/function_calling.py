@@ -58,6 +58,6 @@ async def handle_image_recognition(user_input):
     if re.search(IMAGE_CQ_PATTERN, user_input):
         image_cq_code = re.search(IMAGE_CQ_PATTERN, user_input).group(0)
         response = await recognize_image(image_cq_code)
-        return response.get("recognition_result")
+        return response
 
     return None
