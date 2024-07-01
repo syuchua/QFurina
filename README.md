@@ -138,7 +138,7 @@ python main.py
 
   - [ ] 接入语音接口 #没有好用的免费语音接口啊，要么收费，要么没有芙芙的(悲)
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
-  - [x] 新增图片识别功能
+  - [x] 新增图片识别功能，需要模型为`GPT4`系列或在`model.json`里设置`vision`为`true`
 
 
 
