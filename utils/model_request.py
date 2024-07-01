@@ -3,7 +3,7 @@ import logging
 import os
 import aiohttp
 from app.config import Config
-from utils.cqimage import get_cq_image_base64
+from utils.cqimage import decode_cq_code
 
 config = Config.get_instance()
 
@@ -123,11 +123,15 @@ async def recognize_image(cq_code):
         raise Exception("API does not support image recognition.")
         
     try:
-        # 异步获取图像的Base64编码
-        image_base64 = await get_cq_image_base64(cq_code)
+        # 解析CQ码中的图像URL
+        image_url = decode_cq_code(cq_code)
+        if not image_url:
+            raise ValueError("No valid image URL found in CQ code")
         
         # 准备消息
-        messages = [{"role": "user", "content": f"图像base64:{image_base64}"}]
+        message_content = f"识别图片：图像URL:{image_url}"
+        logging.info(f"Sending image for recognition: {message_content}")
+        messages = [{"role": "user", "content": message_content}]
         
         # 使用 get_chat_response 函数获取聊天响应
         response_text = await get_chat_response(messages)
