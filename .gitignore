@@ -1,0 +1,131 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg
+*.egg-info/
+dist/
+build/
+wheels/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Pycharm project files
+*.iml
+*.iws
+.idea/
+.idea_modules/
+*.ipr
+
+# Environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+venv-old/
+venv-new/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+
+# Flask specific
+instance/
+.webassets-cache
+
+# Scrapy specific
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jekyll site
+_site/
+
+# dotenv
+.env
+.env.*
+
+# pypoetry
+poetry.lock
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Encrypted files
+*.key
+
+# Flask log files
+logs/
+*.log
+
+# Local user files
+*.local
+*.sublime-workspace
+
+# Ignore data directories
+data/image/
+data/voice/
+data/temp/
+
+# Ignore database files
+*.sqlite3
+*.db
+
+# Ignore config files
+config.yml
+config.yaml
+
+# Ignore other sensitive files
+credentials.json
+secrets.json
