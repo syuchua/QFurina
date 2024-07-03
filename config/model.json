@@ -11,7 +11,7 @@
           "vision": false
       },
       "moonshot": {
-          "api_key": "sk-hQcAOKmCa5H1BBTOLibk1pA3avtxwcTk3sHeMoMfKJkjgXnW",
+          "api_key": "",
           "base_url": "https://api.moonshot.cn/v1",
           "args": {},
           "timeout": 120,
@@ -27,7 +27,7 @@
           "vision": false
       },
       "ChatGlm": {
-          "api_key": "7f5c5507dd766068fa98d42922eea2f7.gIFMg0taSbt8hVPs",
+          "api_key": "",
           "base_url": "https://open.bigmodel.cn/api/paas/v4",
           "args": {},
           "timeout": 120,
@@ -35,8 +35,8 @@
           "vision": true
       },
       "Gemini": {
-          "api_key": "AIzaSyAOkWyxIJGOYN2OVFlnQF_zj2bFZypBufo",
-          "base_url": "https://generativelanguage.googleapis.com/v1/models/{model_name}?key={api_key}",
+          "api_key": "",
+          "base_url": "",
           "args": {},
           "timeout": 120,
           "available_models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"],
