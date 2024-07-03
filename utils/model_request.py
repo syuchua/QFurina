@@ -1,46 +1,44 @@
 import json
-import logging
+from app.logger import logger
 import os
-import requests
+import aiohttp
+from app.config import Config
+from utils.cqimage import decode_cq_code
 
+config = Config.get_instance()
 
-class OpenAIClient:
+class ModelClient:
     def __init__(self, api_key, base_url, timeout=120):
         self.api_key = api_key
         self.base_url = base_url
         self.timeout = timeout
 
-    def chat_completion(self, model, messages, **kwargs):
-        endpoint = f"{self.base_url}/chat/completions"
+    async def request(self, endpoint, payload):
         headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.base_url}/{endpoint}", json=payload, headers=headers, timeout=self.timeout) as response:
+                response.raise_for_status()
+                return await response.json()
+
+class OpenAIClient(ModelClient):
+    async def chat_completion(self, model, messages, **kwargs):
         payload = {
             'model': model,
             'messages': messages
         }
         payload.update(kwargs)
-        
-        response = requests.post(endpoint, json=payload, headers=headers, timeout=self.timeout)
-        response.raise_for_status()
-        return response.json()
+        return await self.request('chat/completions', payload)
 
-    def image_generation(self, model, prompt, **kwargs):
-        endpoint = f"{self.base_url}/images/generate"
-        headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
+    async def image_generation(self, model, prompt, **kwargs):
         payload = {
             'model': model,
             'prompt': prompt
         }
         payload.update(kwargs)
-
-        response = requests.post(endpoint, json=payload, headers=headers, timeout=self.timeout)
-        response.raise_for_status()
-        return response.json()
+        return await self.request('images/generate', payload)
 
 # 读取配置文件
 def load_config():
@@ -55,38 +53,49 @@ def load_config():
     return default_config, model_config
 
 def get_client(default_config, model_config):
-    # 检查 model 是否为空
-    model_name = model_config.get('model')
-    if not model_name:
-        logging.warning(f"Model is not specified in model.json. Using default config.json settings.")
-        model_name = default_config.get('model', 'gpt-3.5-turbo')
+    global supports_image_recognition
+    model_name = config.MODEL_NAME
 
-    # 根据 model 确定使用的模型配置
-    for model_key, settings in model_config['models'].items():
-        if model_name in settings.get('available_models', []):
-            api_key = settings['api_key']
-            base_url = settings['base_url']
-            timeout = settings['timeout']
-            return OpenAIClient(api_key, base_url, timeout)
+    if model_name:  # 如果 model.json 中指定了 model
+        for model_key, settings in model_config.get('models', {}).items():
+            if model_name in settings.get('available_models', []):
+                api_key = settings['api_key']
+                base_url = settings['base_url']
+                timeout = settings.get('timeout', 120)  # 使用模型配置中的 timeout，默认为 120
+                client = OpenAIClient(api_key, base_url, timeout)
+                logger.info(f"Using model '{model_name}' with base_url: {base_url}")
+                # 检查是否支持图像识别
+                supports_image_recognition = settings.get('vision', False)
+                return client
+        # 如果指定的 model 没有找到可用模型
+        logger.warning(f"Model '{model_name}' not found in available models. Using default config.json settings.")
+        supports_image_recognition = False
+
+    else:
+        logger.warning(f"Model is not specified in model.json. Using default config.json settings.")
+        supports_image_recognition = False
     
-    # 如果没有找到匹配的模型，则使用默认配置
-    logging.warning(f"Model '{model_name}' not found in available models. Using default config.json settings.")
+    # 使用默认配置
     api_key = default_config.get('openai_api_key')
-    base_url = default_config.get('proxy_api_base', 'https://api.openai.com/v1')
+    base_url = default_config.get('proxy_api_base', 'https://api.openai.com/v1') 
     timeout = 120
-    return OpenAIClient(api_key, base_url, timeout)
+    client = OpenAIClient(api_key, base_url, timeout)
+    logger.info(f"Using default settings with base_url: {base_url}")
+    supports_image_recognition = True if default_config.get("model", "").startswith("gpt-4") else False
+    return client
 
+# 确保只调用一次
+if 'client' not in globals():
+    default_config, model_config = load_config()
+    client = get_client(default_config, model_config)
 
-default_config, model_config = load_config()
-client = get_client(default_config, model_config)
-
-def get_chat_response(messages):
+async def get_chat_response(messages):
     system_message = model_config.get('system_message', {}).get('character', '') or default_config.get('system_message', {}).get('character', '')
     if system_message:
         messages.insert(0, {"role": "system", "content": system_message})
 
     try:
-        response = client.chat_completion(
+        response = await client.chat_completion(
             model=model_config.get('model') or default_config.get('model', 'gpt-3.5-turbo'),
             messages=messages,
             max_tokens=1000,
@@ -97,10 +106,10 @@ def get_chat_response(messages):
     except Exception as e:
         raise Exception(f"Error during OpenAI API request: {e}")
 
-def generate_image(prompt):
+async def generate_image(prompt):
     try:
-        response = client.image_generation(
-            model="dall-e-2",
+        response = await client.image_generation(
+            model="glm-4",
             prompt=prompt,
             size="1024x1024",
             quality="standard",
@@ -109,3 +118,26 @@ def generate_image(prompt):
         return response['data'][0]['url']
     except Exception as e:
         raise Exception(f"Error during DALL·E API request: {e}")
+
+async def recognize_image(cq_code):
+    # 检查是否支持图像识别
+    if not supports_image_recognition:
+        raise Exception("API does not support image recognition.")
+        
+    try:
+        # 解析CQ码中的图像URL
+        image_url = decode_cq_code(cq_code)
+        if not image_url:
+            raise ValueError("No valid image URL found in CQ code")
+        
+        # 准备消息
+        message_content = f"识别图片：图像URL:{image_url}"
+        logger.info(f"Sending image for recognition: {message_content}")
+        messages = [{"role": "user", "content": message_content}]
+        
+        # 使用 get_chat_response 函数获取聊天响应
+        response_text = await get_chat_response(messages)
+        
+        return response_text
+    except Exception as e:
+        raise Exception(f"Error during image recognition: {e}")
