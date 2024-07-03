@@ -5,17 +5,25 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
+import os
+import subprocess
 from wsgiref.simple_server import make_server
 from utils.file import run_flask_app
-import schedule  
+import schedule
 from app.message import process_group_message, process_private_message
 from app.config import Config
 from app.database import MongoDB
-from utils.receive import start_server, rev_msg  
-from commands.reset import session_timeout_check  
+from utils.receive import start_server, rev_msg
+from commands.reset import session_timeout_check
 
 # 全局变量用于控制循环
 running = True
+
+# 启动 MongoDB 服务
+def start_mongodb():
+    logger.info("启动 MongoDB 服务...")
+    mongodb_command = ['mongod', '--dbpath', 'D:\\MongoDB\\data', '--logpath', 'D:\\MongoDB\\log\\mongodb.log', '--logappend']
+    subprocess.Popen(mongodb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 # 信号处理函数
 def signal_handler(sig, frame):
@@ -62,6 +70,10 @@ async def main():
     global running
 
     try:
+
+        # 启动 MongoDB 服务
+        start_mongodb()
+
         # 启动 Flask 应用
         flask_thread = threading.Thread(target=run_flask_app)
         flask_thread.start()
