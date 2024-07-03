@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master  # 触发工作流的分支
+      - dev
 
 jobs:
   build:
