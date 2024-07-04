@@ -17,6 +17,3 @@ def voice_files(filename):
     else:
         logger.info(f"文件不存在: {file_path}")
         return 'File not found', 404
-
-def run_flask_app():
-    app.run(host='127.0.0.1', port=4321)

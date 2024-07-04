@@ -103,7 +103,7 @@ async def process_chat_message(rev, msg_type):
         command = match.group(1)
         command_args = match.group(2)
         full_command = f"{command} {command_args}" if command_args else command
-        await handle_command(full_command, msg_type, recipient_id, send_msg)
+        await handle_command(full_command, msg_type, recipient_id, send_msg, context_type, context_id)
         return
 
     # 处理图片请求
@@ -125,7 +125,8 @@ async def process_chat_message(rev, msg_type):
         return
 
     # 从对话记录中获取最近的消息以进行上下文理解
-    recent_messages = db.get_recent_messages(user_id)
+    recent_messages = db.get_recent_messages(user_id=user_id, context_type=context_type, context_id=context_id)
+    # logger.info(f"Recent messages: {recent_messages}")
 
     # 构建上下文消息列表
     system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
@@ -175,7 +176,7 @@ async def process_group_message(rev):
 
     # 确定 context_type 和 context_id
     context_type = 'group'
-    context_id = user_id
+    context_id = group_id
 
     # 检查消息是否包含 @ 机器人的 CQ 码
     at_bot_message = r'\[CQ:at,qq={}\]'.format(config.SELF_ID)
@@ -185,7 +186,8 @@ async def process_group_message(rev):
         await process_chat_message(rev, 'group')
         return
 
-    if any(nickname in user_input for nickname in config.NICKNAMES) or re.match(r'^\[CQ:at,qq={}\]$'.format(config.SELF_ID), user_input) and "纳西妲" not in rev['sender']['nickname']:
+    if (any(nickname in user_input for nickname in config.NICKNAMES) or re.match(r'^\[CQ:at,qq={}\]$'.format(config.SELF_ID), user_input)) and "纳西妲" not in rev['sender']['nickname']:
+
         await process_chat_message(rev, 'group')
     else:
         if random.random() <= config.REPLY_PROBABILITY:

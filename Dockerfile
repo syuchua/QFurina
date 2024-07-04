@@ -7,9 +7,11 @@ WORKDIR /app
 # 将当前目录下所有文件复制到工作目录
 COPY . /app
 
-# 安装项目依赖
-RUN pip install --no-cache-dir -r requirements.txt \
-    && touch /.dockerenv
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 安装 MongoDB 客户端工具
+RUN apt-get update && apt-get install -y mongodb-clients
 
 # 暴露端口3001用于接收QQ上报的http消息
 EXPOSE 3001
