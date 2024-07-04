@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 version: '3'
 services:
   qq_bot:
@@ -21,4 +22,29 @@ services:
       - mongo_data:/data/db
 
 volumes:
+=======
+version: '3'
+services:
+  qq_bot:
+    image: syuchua01/my_qbot:latest
+    container_name: my_qbot
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./bot:/app
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/my_bot_database
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+>>>>>>> aa3397f2341c0c54e633b5cceecf5a923408aae2
   mongo_data:

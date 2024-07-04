@@ -3,7 +3,7 @@ name: Build and Publish Docker Image
 on:
   push:
     branches:
-      - master  # 触发工作流的分支
+      - dev  # 触发工作流的分支
 
 jobs:
   build:
@@ -20,15 +20,15 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
- 
+
       # 打印 DOCKER_USERNAME 以供调试
       - name: Debug Docker Username
         run: echo $DOCKER_USERNAME
-      
+
       # 构建 Docker 镜像
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/my_qbot:latest .
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/my_qbot:dev .
 
       # 推送 Docker 镜像到 Docker Hub
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/my_qbot:latest
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/my_qbot:dev
