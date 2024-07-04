@@ -69,10 +69,21 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error updating context: {e}")
 
-    def get_recent_messages(self, user_id, limit=10):
+    def get_recent_messages(self, user_id, context_type='private', context_id=None, limit=10):
         try:
             messages_collection = self.get_collection('messages')
-            messages = messages_collection.find({"user_id": user_id}).sort("timestamp", -1).limit(limit)
+            query = {"context_type": context_type}
+            
+            if context_type == 'private':
+                query["user_id"] = user_id
+            elif context_type == 'group':
+                if context_id:
+                    query["context_id"] = context_id
+                else:
+                    logger.warning("Context ID is required for group messages.")
+                    return []
+
+            messages = messages_collection.find(query).sort("timestamp", -1).limit(limit)
             messages_list = []
 
             # 确保字段存在默认值，并跳过未回复的消息
@@ -153,8 +164,6 @@ class MongoDB:
             result = messages_collection.delete_one({'_id': ObjectId(message_id)})
             if result.deleted_count == 1:
                 logger.info(f"Deleted message with _id {message_id}")
-            else:
-                logger.warning(f"Message with _id {message_id} not found")
         except Exception as e:
             logger.error(f"Error deleting message: {e}")
 

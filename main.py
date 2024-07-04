@@ -6,13 +6,13 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
 from wsgiref.simple_server import make_server
-from utils.file import run_flask_app
-import schedule  
+from utils.file import app
+import schedule
 from app.message import process_group_message, process_private_message
 from app.config import Config
 from app.database import MongoDB
-from utils.receive import start_server, rev_msg  
-from commands.reset import session_timeout_check  
+from utils.receive import start_server, rev_msg
+from commands.reset import session_timeout_check
 
 # 全局变量用于控制循环
 running = True
@@ -22,6 +22,29 @@ def signal_handler(sig, frame):
     global running
     logger.info("收到终止信号，正在退出...")
     running = False
+
+
+# 运行 Flask 应用线程池以保持与原逻辑一致
+class FlaskServer:
+    def __init__(self, app):
+        self.server = None
+        self.app = app
+
+    def start(self):
+        self.server = make_server('127.0.0.1', 4321, self.app)
+        self.server.timeout = 1
+        self.thread = ThreadPoolExecutor().submit(self.run)
+
+    def run(self):
+        logger.info("启动 Flask 应用程序...")
+        while running:
+            self.server.handle_request()
+
+    def shutdown(self):
+        logger.info("关闭 Flask 应用程序...")
+        if self.server:
+            self.server.shutdown()
+            self.server.server_close()
 
 # 异步消息处理逻辑
 async def main_loop():
@@ -60,11 +83,11 @@ def schedule_jobs():
 # 异步任务管理器
 async def main():
     global running
-
+    flask_server = FlaskServer(app)
     try:
+
         # 启动 Flask 应用
-        flask_thread = threading.Thread(target=run_flask_app)
-        flask_thread.start()
+        flask_server.start()
 
         # 启动定时任务线程
         schedule_thread = threading.Thread(target=schedule_jobs)
@@ -80,8 +103,7 @@ async def main():
         asyncio.create_task(session_timeout_check())
     finally:
         # 等待所有任务完成后关闭 Flask 应用
-        #flask_server.shutdown()
-        print("关闭 Flask 应用程序...")
+        flask_server.shutdown()
         logger.info("关闭 Flask 应用程序...")
 
 if __name__ == '__main__':

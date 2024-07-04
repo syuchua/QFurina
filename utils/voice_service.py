@@ -34,7 +34,6 @@ async def generate_voice(text, cha_name=None):
 
     filename = '%stts%d.wav' % (time.strftime('%F') + '-' + time.strftime('%T').replace(':', '-'), random.randrange(10000, 99999))
     file_path = os.path.join(config.AUDIO_SAVE_PATH, filename)
-
     try:
         async with aiofiles.open(file_path, 'wb') as file:
             await file.write(content)
