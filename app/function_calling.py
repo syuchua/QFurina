@@ -45,7 +45,7 @@ async def handle_voice_request(user_input):
 
     for keyword in VOICE_KEYWORDS:
         if keyword in user_input:
-            voice_text = user_input.replace(keyword, '').strip()
+            voice_text = user_input.split(keyword, 1)[1].strip()
             audio_filename = await generate_voice(voice_text)
             if audio_filename:
                 return f"http://localhost:4321/data/voice/{audio_filename}"

@@ -40,6 +40,16 @@ class OpenAIClient(ModelClient):
         payload.update(kwargs)
         return await self.request('images/generate', payload)
 
+class ClaudeClient(ModelClient):
+    async def chat_completion(self, model, messages, system='', max_tokens=2048):
+        payload = {
+            'model': model,
+            'system': system,
+            'max_tokens': max_tokens,
+            'messages': messages
+        }
+        return await self.request('messages', payload)
+
 # 读取配置文件
 def load_config():
     config_dir = os.path.join(os.path.dirname(__file__), '../config')
@@ -62,11 +72,16 @@ def get_client(default_config, model_config):
                 api_key = settings['api_key']
                 base_url = settings['base_url']
                 timeout = settings.get('timeout', 120)  # 使用模型配置中的 timeout，默认为 120
-                client = OpenAIClient(api_key, base_url, timeout)
+                if 'claude' in model_name.lower():  # 检测是否包含关键词 "claude"
+                    client = ClaudeClient(api_key, base_url, timeout)
+                    client_type = 'claude'
+                else:
+                    client = OpenAIClient(api_key, base_url, timeout)
+                    client_type = 'openai'
                 logger.info(f"Using model '{model_name}' with base_url: {base_url}")
                 # 检查是否支持图像识别
                 supports_image_recognition = settings.get('vision', False)
-                return client
+                return client, client_type
         # 如果指定的 model 没有找到可用模型
         logger.warning(f"Model '{model_name}' not found in available models. Using default config.json settings.")
         supports_image_recognition = False
@@ -80,31 +95,52 @@ def get_client(default_config, model_config):
     base_url = default_config.get('proxy_api_base', 'https://api.openai.com/v1') 
     timeout = 120
     client = OpenAIClient(api_key, base_url, timeout)
+    client_type = 'openai'
     logger.info(f"Using default settings with base_url: {base_url}")
     supports_image_recognition = True if default_config.get("model", "").startswith("gpt-4") else False
-    return client
+    return client, client_type
 
 # 确保只调用一次
 if 'client' not in globals():
     default_config, model_config = load_config()
-    client = get_client(default_config, model_config)
+    client, client_type = get_client(default_config, model_config)
 
 async def get_chat_response(messages):
     system_message = model_config.get('system_message', {}).get('character', '') or default_config.get('system_message', {}).get('character', '')
-    if system_message:
-        messages.insert(0, {"role": "system", "content": system_message})
+    if client_type == 'claude':
+        # 移除已有的 `system` 消息
+        messages = [msg for msg in messages if msg['role'] != 'system']
+        # 确保没有不必要的字段
+        clean_messages = [{"role": msg["role"], "content": msg["content"]} for msg in messages]
+        try:
+            response = await client.chat_completion(
+                model="claude-3-5-sonnet@20240620",
+                system=system_message,
+                max_tokens=1000,
+                messages=clean_messages
+            )
+            return response['content'][0]['text'].strip()
+        except Exception as e:
+            raise Exception(f"Error during API request: {e}")
+    
+    else:
+        if system_message:
+            messages.insert(0, {"role": "system", "content": system_message})
 
-    try:
-        response = await client.chat_completion(
-            model=model_config.get('model') or default_config.get('model', 'gpt-3.5-turbo'),
-            messages=messages,
-            max_tokens=1000,
-            top_p=0.95,
-            presence_penalty=0
-        )
-        return response['choices'][0]['message']['content'].strip()
-    except Exception as e:
-        raise Exception(f"Error during OpenAI API request: {e}")
+        try:
+            response = await client.chat_completion(
+                model=model_config.get('model') or default_config.get('model', 'gpt-3.5-turbo'),
+                messages=messages,
+                temperature=0.5,
+                max_tokens=1000,
+                top_p=0.95,
+                stream=False,
+                stop=None,
+                presence_penalty=0
+            )
+            return response['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            raise Exception(f"Error during API request: {e}")
 
 async def generate_image(prompt):
     try:
@@ -117,7 +153,7 @@ async def generate_image(prompt):
         )
         return response['data'][0]['url']
     except Exception as e:
-        raise Exception(f"Error during DALL·E API request: {e}")
+        raise Exception(f"Error during image generation API request: {e}")
 
 async def recognize_image(cq_code):
     # 检查是否支持图像识别
