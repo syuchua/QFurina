@@ -13,6 +13,8 @@
 ## 当前支持的消息平台：
 目前仅在Windows端Llonebot上测试过，理论上所有支持oneonev11协议的消息平台都可以用，不过http对接配置可能要麻烦一点
 
+### 若需要历史消息和上下文功能可前往`dev`分支查看
+
 ## 部署指南
   - ### docker部署(还未测试过)
     先运行如下命令建立相关目录与文件：
@@ -139,7 +141,7 @@ python main.py
 
   - [x] 接入语音接口 
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
-  - [x] 新增图片识别功能
+  - [x] 新增图片识别功能，需要模型为`GPT4`系列或在`model.json`里设置`vision`为`true`
 
 
 
