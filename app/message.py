@@ -104,28 +104,30 @@ async def process_chat_message(rev, msg_type):
         command_args = match.group(2)
         full_command = f"{command} {command_args}" if command_args else command
         await handle_command(full_command, msg_type, recipient_id, send_msg, context_type, context_id)
-        return
+        
+        
+    async def handle_special_requests(user_input):
+        image_url = await handle_image_request(user_input)
+        if image_url:
+            return f"[CQ:image,file={image_url}]"
 
-    # 处理图片请求
-    image_url = await handle_image_request(user_input)
-    if image_url:
-        await send_image(msg_type, recipient_id, image_url)
-        return
+        voice_url = await handle_voice_request(user_input)
+        if voice_url:
+            return f"[CQ:record,file={voice_url}]"
 
-    # 处理语音请求
-    voice_url = await handle_voice_request(user_input)
-    if voice_url:
-        await send_msg(msg_type, recipient_id, voice_url, use_voice=True)
-        return
+        recognition_result = await handle_image_recognition(user_input)
+        if recognition_result:
+            return f"识别结果：{recognition_result}"
 
-    # 处理图片识别请求
-    recognition_result = await handle_image_recognition(user_input)
-    if recognition_result:
-        await send_msg(msg_type, recipient_id, f"识别结果：{recognition_result}")
+        return None
+
+    response = await handle_special_requests(user_input)
+    if response:
+        await send_msg(msg_type, recipient_id, response)
         return
 
     # 从对话记录中获取最近的消息以进行上下文理解
-    recent_messages = db.get_recent_messages(user_id=user_id, context_type=context_type, context_id=context_id)
+    recent_messages = db.get_recent_messages(user_id if msg_type == 'private' else 'group', context_type, context_id)
     # logger.info(f"Recent messages: {recent_messages}")
 
     # 构建上下文消息列表
@@ -176,17 +178,28 @@ async def process_group_message(rev):
 
     # 确定 context_type 和 context_id
     context_type = 'group'
-    context_id = group_id
+    context_id = user_id
+
+    # 要屏蔽的id
+    block_id = [3780469992, 3542896617]
+
+     # 检查消息是否包含特定的昵称
+    contains_nickname = any(nickname in user_input for nickname in config.NICKNAMES)
+
+    # 检查发送者是否在屏蔽列表中
+    is_sender_blocked = user_id in block_id
 
     # 检查消息是否包含 @ 机器人的 CQ 码
     at_bot_message = r'\[CQ:at,qq={}\]'.format(config.SELF_ID)
+    is_at_bot = re.search(at_bot_message, user_input)
     if re.search(at_bot_message, user_input):
         # 去除 @ 机器人的CQ码
         user_input = re.sub(at_bot_message, '', user_input).strip()
         await process_chat_message(rev, 'group')
         return
+    
 
-    if (any(nickname in user_input for nickname in config.NICKNAMES) or re.match(r'^\[CQ:at,qq={}\]$'.format(config.SELF_ID), user_input)) and "纳西妲" not in rev['sender']['nickname']:
+    if (contains_nickname or is_at_bot) and not is_sender_blocked:
 
         await process_chat_message(rev, 'group')
     else:
