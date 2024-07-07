@@ -1,24 +1,21 @@
-import logging
-import signal
-import sys
+import os
+from app.logger import logger
+from utils.voice_service import clean_voice_directory
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import threading
+import time
 from wsgiref.simple_server import make_server
-from flask import app  # 确保从正确的模块中导入 Flask 应用实例
+from utils.file import app
+import schedule
 from app.message import process_group_message, process_private_message
 from app.config import Config
-from utils.receive import start_server, rev_msg  # 调整为导入 start_server 和 rev_msg
-from commands.reset import session_timeout_check  # 导入 session_timeout_check
+from utils.receive import start_server, rev_msg
+from commands.reset import session_timeout_check
 
-# 全局变量用于控制循环
-running = True
-
-# 信号处理函数
-def signal_handler(sig, frame):
-    global running
-    print("收到终止信号，正在退出...")
-    logging.info("收到终止信号，正在退出...")
-    running = False
+# 确认程序是否要关停
+def isMainThreadAlive():
+    return threading.main_thread().is_alive()
 
 # 运行 Flask 应用线程池以保持与原逻辑一致
 class FlaskServer:
@@ -32,47 +29,56 @@ class FlaskServer:
         self.thread = ThreadPoolExecutor().submit(self.run)
 
     def run(self):
-        logging.info("启动 Flask 应用程序...")
-        while running:
-            self.server.handle_request()
+        logger.info("启动 Flask 应用程序...")
+        while isMainThreadAlive():
+            self.server.handle_request() # type: ignore
 
     def shutdown(self):
-        logging.info("关闭 Flask 应用程序...")
+        logger.info("关闭 Flask 应用程序...")
         if self.server:
             self.server.shutdown()
             self.server.server_close()
 
 # 异步消息处理逻辑
 async def main_loop():
-    global running
-    print("程序已启动，正在监听消息...")
-    logging.info("程序已启动，正在监听消息...")
+    logger.info("程序已启动，正在监听消息...")
 
-    while running:
+    while isMainThreadAlive():
         try:
-            rev = await rev_msg()  # 使用异步版本的消息接收函数
+            rev = await rev_msg()  
             if rev and 'message_type' in rev:
                 message_type = rev.get('message_type')
                 if message_type == "private":
-                    await process_private_message(rev)  # 假设这个函数已经异步定义了
+                    await process_private_message(rev)  
                 elif message_type == "group":
-                    await process_group_message(rev)  # 假设这个函数已经异步定义了
+                    await process_group_message(rev)  
                 else:
                     pass  # 忽略未识别的消息类型
             else:
                 pass  # 忽略没有收到消息或消息格式不正确的情况
 
         except Exception as e:
-            logging.error(f"Error in main loop: {e}")
+            logger.error(f"Error in main loop: {e}")
 
+# 定义定期清理任务
+def schedule_jobs():
+
+    # 每小时检查一次语音文件夹
+    voice_directory = os.path.join(os.getcwd(), 'data/voice')
+    schedule.every(60).minutes.do(clean_voice_directory, directory=voice_directory)
+    
+    while isMainThreadAlive():
+        schedule.run_pending()
+        time.sleep(60)  # 休眠60秒
+
+# 异步任务管理器
 async def main():
-    global running
     flask_server = FlaskServer(app)
-
+    schedule_thread = threading.Thread(target=schedule_jobs,daemon=True)
+    schedule_thread.start()
     try:
         # 启动 Flask 应用
         flask_server.start()
-
         # 启动消息服务器、异步消息接收循环和会话超时检查任务
         await asyncio.gather(
             start_server(),  # 启动异步服务器并等待
@@ -84,12 +90,10 @@ async def main():
     finally:
         # 等待所有任务完成后关闭 Flask 应用
         flask_server.shutdown()
+        logger.info("关闭 Flask 应用程序...")
+        raise SystemExit(0)
 
 if __name__ == '__main__':
-    # 注册信号处理函数
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     # 读取配置
     config = Config.get_instance()
 
@@ -97,9 +101,4 @@ if __name__ == '__main__':
         # 运行主异步任务
         asyncio.run(main())
     except Exception as e:
-        logging.error(f"Main loop encountered an error: {e}")
-
-    print("程序已停止。")
-    logging.info("程序已停止。")
-
-    sys.exit(0)
+        logger.error(f"Main loop encountered an error: {e}")

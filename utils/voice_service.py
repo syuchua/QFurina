@@ -1,42 +1,56 @@
 import os
 import time
 import random
+import aiofiles
+import aiohttp
 import requests
-import logging
+from app.logger import logger
 from app.config import Config
 
 # 获取配置实例
 config = Config.get_instance()
 
-def generate_voice(text, cha_name=None):
+async def generate_voice(text, cha_name=None):
     if cha_name is None:
         cha_name = config.CHA_NAME
-    
+
     tts_data = {
         "cha_name": cha_name,
         "text": text.replace("...", "…").replace("…", ","),
         "character_emotion": random.choice(['default', '平常的', '慢速病娇', '傻白甜', '平静的', '疯批', '聊天'])
     }
-    
+
     try:
-        response = requests.post(url=config.VOICE_SERVICE_URL, json=tts_data)
-        response.raise_for_status()  # 确保请求成功
-    except requests.exceptions.HTTPError as e:
-        logging.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url=config.VOICE_SERVICE_URL, json=tts_data) as response:
+                response.raise_for_status()
+                content = await response.read()
+    except aiohttp.ClientResponseError as e:
+        logger.error(f"HTTP error occurred: {e.status} - {e.message}")
         return None
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Request exception occurred: {e}")
+    except aiohttp.ClientError as e:
+        logger.error(f"Request exception occurred: {e}")
         return None
 
     filename = '%stts%d.wav' % (time.strftime('%F') + '-' + time.strftime('%T').replace(':', '-'), random.randrange(10000, 99999))
     file_path = os.path.join(config.AUDIO_SAVE_PATH, filename)
-    
     try:
-        with open(file_path, 'wb') as file:
-            file.write(response.content)
-        print("语音文件生成成功")
+        async with aiofiles.open(file_path, 'wb') as file:
+            await file.write(content)
+        logger.info("语音文件生成成功")
     except IOError as e:
-        logging.error(f"IO error occurred while writing file {file_path}: {e}")
+        logger.error(f"IO error occurred while writing file {file_path}: {e}")
         return None
 
     return filename
+
+def clean_voice_directory(directory, max_files=10):
+    files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    if len(files) > max_files:
+        logger.info(f"Voice directory contains {len(files)} files, cleaning up...")
+        for file in sorted(files, key=os.path.getmtime)[:-max_files]:
+            try:
+                os.remove(file)
+                logger.info(f"Removed file: {file}")
+            except Exception as e:
+                logger.error(f"Error removing file {file}: {e}")

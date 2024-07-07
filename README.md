@@ -8,6 +8,7 @@
   3. 从pixiv获取并发送涩图()
   4. 指定关键词发送或者随机涩图
   5. AI绘画
+  6. AI生成语音
 
 ## 当前支持的消息平台：
 目前仅在Windows端Llonebot上测试过，理论上所有支持oneonev11协议的消息平台都可以用，不过http对接配置可能要麻烦一点
@@ -85,9 +86,9 @@
   - `proxy_api_base`: openai_api_key请求地址，默认为https://api.openai.com/v1
   - `reply_probability`: 当收到的消息中没有nickname时的回复频率，1为每一条都回复，0为仅回复带有nickname的消息，默认0.5
   - `r18`: 0为关闭r18，1开启r18，2为随机发送(慎选)
-  - `audio_save_path`: 语音接口相关，暂不可用
-  - `voice_service_url`: 语音接口相关，暂不可用
-  - `cha_name`：语音接口相关，暂不可用
+  - `audio_save_path`: 语音文件保存地址
+  - `voice_service_url`: 语音接口地址
+  - `cha_name`：语音接口指定角色
  - ### 部署Llonebot:
     [建议查看官方文档](https://llonebot.github.io/zh-CN/)
 
@@ -136,7 +137,7 @@ python main.py
   - [x] 接入图片接口
   - [x] 自定义人格
 
-  - [ ] 接入语音接口 #没有好用的免费语音接口啊，要么收费，要么没有芙芙的(悲)
+  - [x] 接入语音接口 
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
   - [x] 新增图片识别功能
 

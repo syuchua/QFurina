@@ -6,7 +6,7 @@ from commands.r18 import handle_r18_command
 
 async def handle_command(command, msg_type, recipient_id, send_msg):
     parts = command.split(' ', 1)
-    main_command = parts[0]
+    main_command = parts[0].lstrip('/#!')  # 移除触发符号
     args = parts[1] if len(parts) > 1 else ''
 
     if main_command == 'help':
@@ -28,8 +28,4 @@ async def handle_command(command, msg_type, recipient_id, send_msg):
         else:
             await send_msg(msg_type, recipient_id, "Usage: /r18 <mode>，其中 <mode> 可以是 0, 1 或 2")
     else:
-<<<<<<< HEAD
         await send_msg(msg_type, recipient_id, "未知的命令。使用 'help' 命令获取帮助信息。")
-=======
-        await send_msg(msg_type, recipient_id, "未知的命令。使用 'help' 命令获取帮助信息。")
->>>>>>> c9fa74a7870c6faf222069815b62223fe24ca81c

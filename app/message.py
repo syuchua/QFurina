@@ -90,22 +90,24 @@ async def process_chat_message(rev, msg_type):
         await handle_command(full_command, msg_type, recipient_id, send_msg)
         return
 
-    # 处理图片请求
-    image_url = await handle_image_request(user_input)
-    if image_url:
-        await send_image(msg_type, recipient_id, image_url)
-        return
+    async def handle_special_requests(user_input):
+        image_url = await handle_image_request(user_input)
+        if image_url:
+            return f"[CQ:image,file={image_url}]"
 
-    # 处理语音请求
-    voice_url = await handle_voice_request(user_input)
-    if voice_url:
-        await send_msg(msg_type, recipient_id, voice_url, use_voice=True)
-        return
+        voice_url = await handle_voice_request(user_input)
+        if voice_url:
+            return f"[CQ:record,file={voice_url}]"
 
-    # 处理图片识别请求
-    recognition_result = await handle_image_recognition(user_input)
-    if recognition_result:
-        await send_msg(msg_type, recipient_id, f"识别结果：{recognition_result}")
+        recognition_result = await handle_image_recognition(user_input)
+        if recognition_result:
+            return f"识别结果：{recognition_result}"
+
+        return None
+
+    response = await handle_special_requests(user_input)
+    if response:
+        await send_msg(msg_type, recipient_id, response)
         return
 
     # 从对话记录中获取预定回复（仅限管理员触发）

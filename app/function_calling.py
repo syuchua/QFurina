@@ -1,4 +1,4 @@
-import logging
+from app.logger import logger
 import re
 from utils.voice_service import generate_voice
 from utils.model_request import get_client, default_config, model_config, recognize_image
@@ -12,7 +12,7 @@ async def call_function(model_name, endpoint, payload):
         response = await client.request(endpoint, payload)
         return response
     except Exception as e:
-        logging.error(f"Error calling function {endpoint} on model {model_name}: {e}")
+        logger.error(f"Error calling function {endpoint} on model {model_name}: {e}")
         return None
 
 async def handle_image_request(user_input):
@@ -35,7 +35,8 @@ async def handle_image_request(user_input):
         if keyword in user_input:
             prompt = user_input.replace(keyword, '').strip()
             response = await call_function('other_model', 'generate_image', {"prompt": prompt})
-            return response.get("image_url")
+            if response:
+                return response.get("image_url")
 
     return None
 
@@ -44,20 +45,21 @@ async def handle_voice_request(user_input):
 
     for keyword in VOICE_KEYWORDS:
         if keyword in user_input:
-            voice_text = user_input.replace(keyword, '').strip()
+            voice_text = user_input.split(keyword, 1)[1].strip()
             audio_filename = await generate_voice(voice_text)
             if audio_filename:
                 return f"http://localhost:4321/data/voice/{audio_filename}"
-            else:
-                return None
+            return None
 
     return None
 
 async def handle_image_recognition(user_input):
     IMAGE_CQ_PATTERN = r'\[CQ:image,file=(.+)\]'
-    if re.search(IMAGE_CQ_PATTERN, user_input):
-        image_cq_code = re.search(IMAGE_CQ_PATTERN, user_input).group(0)
+    match = re.search(IMAGE_CQ_PATTERN, user_input)
+    if match:
+        image_cq_code = match.group(0)
         response = await recognize_image(image_cq_code)
-        return response.get("recognition_result")
+        if response:
+            return response
 
     return None
