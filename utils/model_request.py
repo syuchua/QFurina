@@ -1,4 +1,7 @@
+import base64
 import json
+
+import httpx
 from app.logger import logger
 import os
 import aiohttp
@@ -166,12 +169,31 @@ async def recognize_image(cq_code):
         if not image_url:
             raise ValueError("No valid image URL found in CQ code")
         
+        # 获取图像数据
+        async with httpx.AsyncClient() as client:
+            response = await client.get(image_url)
+            image_data = base64.b64encode(response.content).decode("utf-8")
+        
         # 准备消息
-        message_content = f"识别图片：图像URL:{image_url}"
-        logger.info(f"Sending image for recognition: {message_content}")
-        messages = [{"role": "user", "content": message_content}]
+        message_content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",  # 根据实际图像类型调整
+                    "data": image_data,
+                },
+            },
+            {
+                "type": "text",
+                "text": "Describe this image in Chinese."
+            }
+        ]
+        
+        logger.info(f"Sending image for recognition")
         
         # 使用 get_chat_response 函数获取聊天响应
+        messages = [{"role": "user", "content": message_content}]
         response_text = await get_chat_response(messages)
         
         return response_text

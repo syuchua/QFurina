@@ -15,6 +15,16 @@ async def call_function(model_name, endpoint, payload):
         logger.error(f"Error calling function {endpoint} on model {model_name}: {e}")
         return None
 
+async def handle_command_request(user_input):
+    COMMAND_PATTERN = re.compile(r'^[!/#](help|reset|character|history|clear|model|r18)(?:\s+(.+))?')
+    match = COMMAND_PATTERN.match(user_input)
+    if match:
+        command = match.group(1)
+        command_args = match.group(2)
+        full_command = f"{command} {command_args}" if command_args else command
+        return full_command
+    return None
+
 async def handle_image_request(user_input):
     IMAGE_KEYWORDS = ["发一张", "来一张"]
     RANDOM_IMAGE_KEYWORDS = ["再来一张", "来份涩图", "来份色图"]

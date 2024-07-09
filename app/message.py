@@ -8,7 +8,7 @@ from app.config import Config
 from app.command import handle_command
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
-from app.function_calling import handle_image_request, handle_voice_request, handle_image_recognition
+from app.function_calling import handle_image_request, handle_voice_request, handle_image_recognition, handle_command_request
 from app.database import MongoDB
 
 config = Config.get_instance()
@@ -75,8 +75,6 @@ def get_dialogue_response(user_input):
             return dialogue["assistant"]
     return None
 
-COMMAND_PATTERN = re.compile(r'^[!/#](help|reset|character|history|clear|model|r18)(?:\s+(.+))?')
-
 async def process_chat_message(rev, msg_type):
 
     user_input = rev['raw_message']
@@ -96,17 +94,15 @@ async def process_chat_message(rev, msg_type):
     }
     db.insert_user_info(user_info)
 
-    # 处理命令请求
-    # 检查是否是特殊字符命令
-    match = COMMAND_PATTERN.match(user_input)
-    if match:
-        command = match.group(1)
-        command_args = match.group(2)
-        full_command = f"{command} {command_args}" if command_args else command
+    # 处理命令
+    full_command =await handle_command_request(user_input)
+    if full_command:
         await handle_command(full_command, msg_type, recipient_id, send_msg, context_type, context_id)
-        
-        
+        return
+    
+    # 处理特殊请求
     async def handle_special_requests(user_input):
+
         image_url = await handle_image_request(user_input)
         if image_url:
             return f"[CQ:image,file={image_url}]"
@@ -121,13 +117,14 @@ async def process_chat_message(rev, msg_type):
 
         return None
 
-    response = await handle_special_requests(user_input)
-    if response:
-        await send_msg(msg_type, recipient_id, response)
+    special_response = await handle_special_requests(user_input)
+    if special_response:
+        await send_msg(msg_type, recipient_id, special_response)
         return
 
-    # 从对话记录中获取最近的消息以进行上下文理解
-    recent_messages = db.get_recent_messages(user_id if msg_type == 'private' else 'group', context_type, context_id)
+
+    # 获取最近的对话记录
+    recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
     # logger.info(f"Recent messages: {recent_messages}")
 
     # 构建上下文消息列表
@@ -178,7 +175,7 @@ async def process_group_message(rev):
 
     # 确定 context_type 和 context_id
     context_type = 'group'
-    context_id = user_id
+    context_id = group_id
 
     # 要屏蔽的id
     block_id = [3780469992, 3542896617]
