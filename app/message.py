@@ -127,7 +127,7 @@ async def process_chat_message(rev, msg_type):
         return
 
     # 从对话记录中获取最近的消息以进行上下文理解
-    recent_messages = db.get_recent_messages(user_id if msg_type == 'private' else 'group', context_type, context_id)
+    recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
     # logger.info(f"Recent messages: {recent_messages}")
 
     # 构建上下文消息列表
