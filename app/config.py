@@ -41,7 +41,8 @@ class Config:
         self.CHA_NAME = self.config_data.get('cha_name')
         self.R18 = self.config_data.get('r18')
         self.ADMIN_TITLES = self.config_data.get('admin_titles')
-
+        self.MESSAGE_QUEUE_SIZE = self.config_data.get('message_queue_size', 10)
+        self.CONNECTION_TYPE = self.config_data.get('connection_type', 'http')
         with open(DIALOGUES_PATH, 'r', encoding='utf-8') as f:
             self.DIALOGUES = json.load(f)
 

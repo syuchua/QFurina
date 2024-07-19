@@ -13,28 +13,61 @@ class MongoDB:
     def __init__(self, uri="mongodb://localhost:27017/", db_name="chatbot_db"):
         self.client = MongoClient(uri)
         self.db = self.client[db_name]
+        self.ensure_indexes()
 
     def get_collection(self, collection_name):
         return self.db[collection_name]
 
+    def ensure_indexes(self):
+        try:
+            users_collection = self.get_collection('users')
+            users_collection.create_index('user_id', unique=True)
+        except Exception as e:
+            logger.error(f"Error ensuring indexes: {e}")
+
     def insert_user_info(self, user_info):
         try:
             users_collection = self.get_collection('users')
-            result = users_collection.update_one(
-                {'user_id': user_info['user_id']},
-                {'$set': user_info},
-                upsert=True
-            )
-            #logger.info(f"Inserted/Updated user info for user_id {user_info['user_id']}")
+            # 尝试找到已有的用户信息
+            existing_user = users_collection.find_one({'user_id': user_info['user_id']})
+            if existing_user:
+                # 更新现有的用户信息
+                result = users_collection.update_one(
+                    {'user_id': user_info['user_id']},
+                    {'$set': user_info}
+                )
+            else:
+                # 插入新的用户信息
+                result = users_collection.insert_one(user_info)
         except Exception as e:
             logger.error(f"Error inserting/updating user info: {e}")
 
-    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id):
+    def deduplicate_users(self):
+        try:
+            users_collection = self.get_collection('users')
+            pipeline = [
+                {"$group": {
+                    "_id": "$user_id",
+                    "count": {"$sum": 1},
+                    "ids": {"$push": "$_id"}
+                }},
+                {"$match": {"count": {"$gt": 1}}}
+            ]
+            duplicates = list(users_collection.aggregate(pipeline))
+            for doc in duplicates:
+                ids_to_remove = doc['ids'][1:]  # 保留一个文档，其余删除
+                users_collection.delete_many({"_id": {"$in": ids_to_remove}})
+            logger.info(f"Deduplicated {len(duplicates)} user records")
+        except Exception as e:
+            logger.error(f"Error deduplicating users: {e}")
+
+    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id, username):
         try:
             if response_text:  # 仅保存有回复的消息
                 messages_collection = self.get_collection('messages')
                 message_data = {
                     'user_id': user_id,
+                    'username': username,
                     'user_input': user_input,
                     'response_text': response_text,
                     'context_type': context_type,  # "group" 或 "private"
@@ -69,19 +102,30 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error updating context: {e}")
 
-    def get_recent_messages(self, user_id, limit=10):
+    def get_recent_messages(self, user_id, context_type, context_id, limit=10):
         try:
             messages_collection = self.get_collection('messages')
-            messages = messages_collection.find({"user_id": user_id}).sort("timestamp", -1).limit(limit)
+            query = {"context_type": context_type}
+            
+            if context_type == 'private':
+                query["user_id"] = user_id
+            elif context_type == 'group':
+                if context_id:
+                    query["context_id"] = context_id
+                else:
+                    logger.warning("Context ID is required for group messages.")
+                    return []
+
+            messages = messages_collection.find(query).sort("timestamp", -1).limit(limit)
             messages_list = []
 
-            # 确保字段存在默认值，并跳过未回复的消息
+             # 确保字段存在默认值，并跳过未回复的消息
             for msg in reversed(list(messages)):
                 user_input = msg.get('user_input', '(no user input)')
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
                     msg["_id"] = str(msg["_id"])  # 将 ObjectId 转换为字符串
-                    messages_list.append({"_id": msg['_id'], "role": "user", "content": user_input})
+                    messages_list.append({"_id": msg['_id'], "role": "user", "content": f"{msg.get('username', 'unknown')}：{user_input}"})
                     messages_list.append({"_id": msg['_id'], "role": "assistant", "content": response_text})
 
             return messages_list
@@ -153,8 +197,6 @@ class MongoDB:
             result = messages_collection.delete_one({'_id': ObjectId(message_id)})
             if result.deleted_count == 1:
                 logger.info(f"Deleted message with _id {message_id}")
-            else:
-                logger.warning(f"Message with _id {message_id} not found")
         except Exception as e:
             logger.error(f"Error deleting message: {e}")
 

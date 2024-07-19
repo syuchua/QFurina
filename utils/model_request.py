@@ -1,4 +1,7 @@
+import base64
 import json
+
+import httpx
 from app.logger import logger
 import os
 import aiohttp
@@ -40,6 +43,17 @@ class OpenAIClient(ModelClient):
         payload.update(kwargs)
         return await self.request('images/generate', payload)
 
+class ClaudeClient(ModelClient):
+    async def chat_completion(self, model, messages, system='', max_tokens=2048):
+        payload = {
+            'model': model,
+            'system': system,
+            'max_tokens': max_tokens,
+            'messages': messages
+        }
+        return await self.request('messages', payload)
+
+
 # 读取配置文件
 def load_config():
     config_dir = os.path.join(os.path.dirname(__file__), '../config')
@@ -62,7 +76,7 @@ def get_client(default_config, model_config):
                 api_key = settings['api_key']
                 base_url = settings['base_url']
                 timeout = settings.get('timeout', 120)  # 使用模型配置中的 timeout，默认为 120
-                client = OpenAIClient(api_key, base_url, timeout)
+                client = OpenAIClient(api_key, base_url, timeout)  # 默认使用 OpenAI 模型进行对话生成               
                 logger.info(f"Using model '{model_name}' with base_url: {base_url}")
                 # 检查是否支持图像识别
                 supports_image_recognition = settings.get('vision', False)
@@ -79,7 +93,7 @@ def get_client(default_config, model_config):
     api_key = default_config.get('openai_api_key')
     base_url = default_config.get('proxy_api_base', 'https://api.openai.com/v1') 
     timeout = 120
-    client = OpenAIClient(api_key, base_url, timeout)
+    client = OpenAIClient(api_key, base_url, timeout) 
     logger.info(f"Using default settings with base_url: {base_url}")
     supports_image_recognition = True if default_config.get("model", "").startswith("gpt-4") else False
     return client
@@ -89,8 +103,10 @@ if 'client' not in globals():
     default_config, model_config = load_config()
     client = get_client(default_config, model_config)
 
+
 async def get_chat_response(messages):
     system_message = model_config.get('system_message', {}).get('character', '') or default_config.get('system_message', {}).get('character', '')
+
     if system_message:
         messages.insert(0, {"role": "system", "content": system_message})
 
@@ -98,18 +114,23 @@ async def get_chat_response(messages):
         response = await client.chat_completion(
             model=model_config.get('model') or default_config.get('model', 'gpt-3.5-turbo'),
             messages=messages,
-            max_tokens=1000,
+            temperature=0.5,
+            max_tokens=2000,
             top_p=0.95,
+            stream=False,
+            stop=None,
             presence_penalty=0
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
-        raise Exception(f"Error during OpenAI API request: {e}")
+        raise Exception(f"Error during API request: {e}")
 
 async def generate_image(prompt):
+    if not supports_image_recognition:
+        raise Exception("API does not support image generation.")
     try:
         response = await client.image_generation(
-            model="glm-4",
+            model="dalle-2",
             prompt=prompt,
             size="1024x1024",
             quality="standard",
@@ -117,7 +138,7 @@ async def generate_image(prompt):
         )
         return response['data'][0]['url']
     except Exception as e:
-        raise Exception(f"Error during DALL·E API request: {e}")
+        raise Exception(f"Error during image generation API request: {e}")
 
 async def recognize_image(cq_code):
     # 检查是否支持图像识别
@@ -130,12 +151,18 @@ async def recognize_image(cq_code):
         if not image_url:
             raise ValueError("No valid image URL found in CQ code")
         
+        # 获取图像数据
+        async with httpx.AsyncClient() as client:
+            response = await client.get(image_url)
+            image_data = base64.b64encode(response.content).decode("utf-8")
+        
         # 准备消息
-        message_content = f"识别图片：图像URL:{image_url}"
-        logger.info(f"Sending image for recognition: {message_content}")
-        messages = [{"role": "user", "content": message_content}]
+        message_content = f"识别图片并用中文回复，图片base64编码:{image_data}"
+        
+        logger.info(f"Sending image for recognition")
         
         # 使用 get_chat_response 函数获取聊天响应
+        messages = [{"role": "user", "content": message_content}]
         response_text = await get_chat_response(messages)
         
         return response_text

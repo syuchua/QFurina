@@ -34,7 +34,6 @@ async def generate_voice(text, cha_name=None):
 
     filename = '%stts%d.wav' % (time.strftime('%F') + '-' + time.strftime('%T').replace(':', '-'), random.randrange(10000, 99999))
     file_path = os.path.join(config.AUDIO_SAVE_PATH, filename)
-
     try:
         async with aiofiles.open(file_path, 'wb') as file:
             await file.write(content)
@@ -44,3 +43,14 @@ async def generate_voice(text, cha_name=None):
         return None
 
     return filename
+
+def clean_voice_directory(directory, max_files=10):
+    files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    if len(files) > max_files:
+        logger.info(f"Voice directory contains {len(files)} files, cleaning up...")
+        for file in sorted(files, key=os.path.getmtime)[:-max_files]:
+            try:
+                os.remove(file)
+                logger.info(f"Removed file: {file}")
+            except Exception as e:
+                logger.error(f"Error removing file {file}: {e}")
