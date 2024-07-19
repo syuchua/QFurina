@@ -1,7 +1,7 @@
 {
   "api_key": "",
   "model": "gpt-3.5-turbo",
-  "proxy_api_base": "http://localhost:3050/v1",
+  "proxy_api_base": "http://api.openai.com/v1",
   "nicknames": ["芙芙", "芙宁娜", "傻芙芙"],
   "self_id": 3674645736,
   "admin_id": 3562013709,

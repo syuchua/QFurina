@@ -1,14 +1,14 @@
 version: '3'
 services:
   qq_bot:
-    image: syuchua01/my_qbot:latest
+    image: syuchua01/my_qbot:dev
     container_name: my_qbot
     ports:
       - "3001:3001"
     volumes:
       - ./bot:/app
     environment:
-      - MONGO_URI=mongodb://mongo:27017/my_bot_database
+      - MONGO_URI=mongodb://mongo:27017/chatbot_db
     depends_on:
       - mongo
 
@@ -21,4 +21,6 @@ services:
       - mongo_data:/data/db
 
 volumes:
+
   mongo_data:
+
