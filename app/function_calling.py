@@ -81,4 +81,3 @@ async def handle_image_recognition(user_input):
             return response
 
     return None
-

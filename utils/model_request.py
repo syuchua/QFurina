@@ -53,7 +53,6 @@ class ClaudeClient(ModelClient):
         }
         return await self.request('messages', payload)
 
-
 # 读取配置文件
 def load_config():
     config_dir = os.path.join(os.path.dirname(__file__), '../config')
@@ -80,7 +79,7 @@ def get_client(default_config, model_config):
                 logger.info(f"Using model '{model_name}' with base_url: {base_url}")
                 # 检查是否支持图像识别
                 supports_image_recognition = settings.get('vision', False)
-                return client
+                return client, client_type
         # 如果指定的 model 没有找到可用模型
         logger.warning(f"Model '{model_name}' not found in available models. Using default config.json settings.")
         supports_image_recognition = False
@@ -96,12 +95,12 @@ def get_client(default_config, model_config):
     client = OpenAIClient(api_key, base_url, timeout) 
     logger.info(f"Using default settings with base_url: {base_url}")
     supports_image_recognition = True if default_config.get("model", "").startswith("gpt-4") else False
-    return client
+    return client, client_type
 
 # 确保只调用一次
 if 'client' not in globals():
     default_config, model_config = load_config()
-    client = get_client(default_config, model_config)
+    client, client_type = get_client(default_config, model_config)
 
 
 async def get_chat_response(messages):
