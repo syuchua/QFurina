@@ -2,9 +2,9 @@ aiofiles==24.1.0
 aiohttp==3.9.5
 Flask==3.0.3
 Flask_Cors==4.0.1
+httpx==0.27.0
 loguru==0.7.2
 Pillow==10.4.0
 pymongo==4.8.0
 Requests==2.32.3
 schedule==1.2.2
-waitress==3.0.0

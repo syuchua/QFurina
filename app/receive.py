@@ -59,12 +59,7 @@ async def handle_message(rev_json):
         if await handle_priority_command(rev_json):
             return
 
-        # 要屏蔽的id
-        block_id = [3780469992,3542896617,3758919058]
-
-        if user_id not in block_id:
-
-            await message_queue.put(rev_json)
+        await message_queue.put(rev_json)
     
     # logger.debug(f"Received message: {rev_json}")
 

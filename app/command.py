@@ -6,7 +6,7 @@ from commands.character import handle_character_command
 from commands.model import handle_model_command
 from commands.r18 import handle_r18_command  
 
-async def handle_command(command, msg_type, recipient_id, send_msg):
+async def handle_command(command, msg_type, recipient_id, send_msg, context_type, context_id):
     parts = command.split(' ', 1)
     main_command = parts[0].lstrip('/#!')  # 移除触发符号
     args = parts[1] if len(parts) > 1 else ''
@@ -18,9 +18,9 @@ async def handle_command(command, msg_type, recipient_id, send_msg):
     elif main_command == 'character':
         await handle_character_command(msg_type, recipient_id, send_msg)
     elif main_command == 'history':
-        await handle_history_command(msg_type, recipient_id, send_msg)
+        await handle_history_command(msg_type, recipient_id, context_type, context_id, send_msg)
     elif main_command == 'clear':
-        await handle_clear_history_command(msg_type, recipient_id, send_msg)
+        await handle_clear_history_command(msg_type, recipient_id, context_type, context_id, send_msg)
     elif main_command == 'model':
         if args:  # model 命令需要一个额外的参数
             new_model = args

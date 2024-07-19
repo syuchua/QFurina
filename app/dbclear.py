@@ -1,10 +1,10 @@
 import time
 import pymongo
 import logging
-from app.config import Config
+#from app.config import Config
 # 配置日志
 logging.basicConfig(level=logging.INFO)
-config = Config.get_instance()
+#config = Config.get_instance()
 class MongoDBCleaner:
     def __init__(self, uri="mongodb://localhost:27017/", db_name="chatbot_db"):
         self.client = pymongo.MongoClient(uri)
@@ -19,12 +19,12 @@ class MongoDBCleaner:
 
     def clean_old_messages(self, hours=2, exempt_user_ids=None, exempt_group_ids=None):
         if exempt_user_ids is None:
-            exempt_user_ids = [config.ADMIN_ID]
+            exempt_user_ids = []
         if exempt_group_ids is None:
             exempt_group_ids = []
 
         messages_collection = self.db['messages']
-        expiry_time = time.time() - hours * 5
+        expiry_time = time.time() - hours * 1
         query = {
             "timestamp": {"$lt": expiry_time},
             "user_id": {"$nin": exempt_user_ids},
