@@ -31,6 +31,7 @@ class Config:
         self.REPLY_PROBABILITY = self.config_data.get('reply_probability', 1.0)
         self.SELF_ID = self.config_data.get('self_id')
         self.ADMIN_ID = self.config_data.get('admin_id')
+        self.BLOCK_ID = self.config_data.get('block_id', [])
         self.REPORT_SECRET = self.config_data.get('report_secret')
         self.PROXY_API_BASE = self.config_data.get('proxy_api_base')
         self.SYSTEM_MESSAGE = self.config_data.get('system_message', {})
@@ -41,7 +42,8 @@ class Config:
         self.CHA_NAME = self.config_data.get('cha_name')
         self.R18 = self.config_data.get('r18')
         self.ADMIN_TITLES = self.config_data.get('admin_titles')
-
+        self.MESSAGE_QUEUE_SIZE = self.config_data.get('message_queue_size', 10)
+        self.CONNECTION_TYPE = self.config_data.get('connection_type', 'http')
         with open(DIALOGUES_PATH, 'r', encoding='utf-8') as f:
             self.DIALOGUES = json.load(f)
 

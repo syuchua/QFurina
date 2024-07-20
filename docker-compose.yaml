@@ -8,5 +8,17 @@ services:
     volumes:
       - ./bot:/app
     environment:
-      - PYTHONUNBUFFERED=1
-    restart: always
+      - MONGO_URI=mongodb://mongo:27017/my_bot_database
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
