@@ -39,7 +39,6 @@ async def send_http_request(url, json):
             res.raise_for_status()
             response = await res.json()
             return response
-
 @select_connection_method
 async def send_msg(msg_type, number, msg, use_voice=False):
     if use_voice:

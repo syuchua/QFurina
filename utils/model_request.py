@@ -52,7 +52,6 @@ class ClaudeClient(ModelClient):
         }
         return await self.request('messages', payload)
 
-
 # 读取配置文件
 def load_config():
     config_dir = os.path.join(os.path.dirname(__file__), '../config')
