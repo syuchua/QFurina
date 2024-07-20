@@ -4,7 +4,7 @@ import asyncio
 import re
 from app.database import MongoDB
 from app.config import Config
-from app.driver import receive_msg, send_msg, close, start_reverse_ws_server, call_api
+from app.driver import receive_msg, send_msg, close, start_reverse_ws_server
 
 config = Config.get_instance()
 
@@ -22,9 +22,10 @@ def request_to_json(msg):
         logger.info(f"Failed to parse JSON from request: {e}")
         return None
 
+    
 # 用于接收消息的队列
 message_queue = asyncio.Queue(maxsize=config.MESSAGE_QUEUE_SIZE)
-db = MongoDB()
+db=MongoDB()
 
 # 捕获并处理优先级命令
 async def handle_priority_command(rev_json):
@@ -45,36 +46,22 @@ async def handle_priority_command(rev_json):
     return False
 
 async def handle_message(rev_json):
-    if 'post_type' not in rev_json:
-        logger.warning(f"Received unexpected message format: {rev_json}")
-        return
+    user_input = rev_json.get('raw_message', '')
+    user_id = rev_json.get('sender', {}).get('user_id')
+    username = rev_json.get('sender', {}).get('nickname')
+    group_id = rev_json.get('group_id')
+    context_type = 'private' if rev_json.get('message_type') == 'private' else 'group'
+    context_id = user_id if context_type == 'private' else group_id
 
-    if rev_json['post_type'] == 'message':
-        user_input = rev_json.get('raw_message', '')
-        user_id = rev_json.get('sender', {}).get('user_id')
-        username = rev_json.get('sender', {}).get('nickname')
-        group_id = rev_json.get('group_id')
-        context_type = 'private' if rev_json.get('message_type') == 'private' else 'group'
-        context_id = user_id if context_type == 'private' else group_id
+    if user_input:
+        db.insert_chat_message(user_id, user_input, '', context_type, context_id, username)
 
-        if user_input:
-            db.insert_chat_message(user_id, user_input, '', context_type, context_id, username)
+        if await handle_priority_command(rev_json):
+            return
 
-            if await handle_priority_command(rev_json):
-                return
-
-            # 要屏蔽的id
-            block_id = [3780469992, 3542896617, 3758919058]
-
-            if user_id not in block_id:
-                await message_queue.put(rev_json)
+        await message_queue.put(rev_json)
     
-    elif rev_json['post_type'] == 'meta_event' and rev_json['meta_event_type'] == 'heartbeat':
-        # 处理心跳事件
-        logger.debug("Received heartbeat")
-    else:
-        # 处理其他类型的事件
-        logger.debug(f"Received event: {rev_json['post_type']}")
+    # logger.debug(f"Received message: {rev_json}")
 
 async def start_http_server():
     async def handle_client(reader, writer):
@@ -104,32 +91,13 @@ async def start_http_server():
     async with server:
         await server.serve_forever()
 
+# 修改后的 start_reverse_ws 函数
 async def start_reverse_ws():
-    await start_reverse_ws_server('127.0.0.1', 8011, handle_message)
+    await start_reverse_ws_server('127.0.0.1', 8011, handle_message)  # 传递host和port参数
     logger.info("反向 WebSocket 服务器已启动，等待连接...")
-
-async def close_connection():
-    try:
-        if config.CONNECTION_TYPE == 'http':
-            # 如果有 HTTP 服务器需要关闭，在这里添加关闭逻辑
-            pass
-        elif config.CONNECTION_TYPE == 'ws_reverse':
-            # 关闭 WebSocket 连接
-            await close()
-        
-        # 清空消息队列
-        while not message_queue.empty():
-            try:
-                message_queue.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-        
-        logger.info("连接已关闭")
-    except Exception as e:
-        logger.error(f"关闭连接时发生错误: {e}")
 
 # 异步的消息接收函数
 async def rev_msg():
     return await message_queue.get()  # 直接从队列获取消息
 
-__all__ = ['message_queue', 'start_http_server', 'start_reverse_ws', 'rev_msg', 'call_api', 'close_connection']
+__all__ = ['message_queue', 'start_http_server', 'start_reverse_ws', 'rev_msg']
