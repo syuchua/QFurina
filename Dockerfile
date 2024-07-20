@@ -11,10 +11,18 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 安装 MongoDB 客户端工具
-RUN apt-get update && apt-get install -y mongodb-clients
+RUN apt-get update && \
+    apt-get install -y wget gnupg && \
+    wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add - && \
+    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-5.0.list && \
+    apt-get update && \
+    apt-get install -y mongodb-org-tools && \
+    rm -rf /var/lib/apt/lists/*
 
 # 暴露端口3001用于接收QQ上报的http消息
 EXPOSE 3001
+# 暴露端口8011用于WebSocket连接
+EXPOSE 8011
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1

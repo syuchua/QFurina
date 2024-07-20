@@ -42,15 +42,6 @@ class OpenAIClient(ModelClient):
         payload.update(kwargs)
         return await self.request('images/generate', payload)
 
-class ClaudeClient(ModelClient):
-    async def chat_completion(self, model, messages, system='', max_tokens=2048):
-        payload = {
-            'model': model,
-            'system': system,
-            'max_tokens': max_tokens,
-            'messages': messages
-        }
-        return await self.request('messages', payload)
 
 # 读取配置文件
 def load_config():
@@ -106,7 +97,6 @@ client, supports_image_recognition = get_client(default_config, model_config)
 
 
 
-
 async def get_chat_response(messages):
     system_message = model_config.get('system_message', {}).get('character', '') or default_config.get('system_message', {}).get('character', '')
 
@@ -125,8 +115,12 @@ async def get_chat_response(messages):
             presence_penalty=0
         )
         return response['choices'][0]['message']['content'].strip()
+    except aiohttp.ClientConnectorError as e:
+        logger.error(f"Network connection error during API request: {e}")
+        raise Exception(f"网络连接错误，请检查网络状态后重试: {e}")
     except Exception as e:
-        raise Exception(f"Error during API request: {e}")
+        logger.error(f"Error during API request: {e}")
+        raise Exception(f"API 请求出错: {e}")
 
 async def generate_image(prompt):
     if not supports_image_recognition:

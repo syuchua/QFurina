@@ -1,14 +1,18 @@
 version: '3'
 services:
   qq_bot:
-    image: syuchua01/my_qbot:dev
+    image: syuchua01/my_qbot:latest
     container_name: my_qbot
     ports:
-      - "3001:3001"
+      - "3001:3001"  # HTTP
+      - "8011:8011"  # WebSocket
     volumes:
       - ./bot:/app
     environment:
       - MONGO_URI=mongodb://mongo:27017/my_bot_database
+      - CONNECTION_TYPE=ws_reverse  # 设置连接类型为 WebSocket
+      - WS_HOST=0.0.0.0  # WebSocket 主机
+      - WS_PORT=8011  # WebSocket 端口
     depends_on:
       - mongo
 
