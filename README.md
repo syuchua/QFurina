@@ -29,14 +29,18 @@
         "nicknames": [""],#当消息中出现nickname时自动触发对话
         "self_id": 123,#修改为机器人QQ号
         "admin_id": 456,#修改为管理员QQ号
-        "report_secret": "123456",#http上报密钥，见下文Llonebot配置
+        "block_id": 789, #修改为要屏蔽的QQ号
+        "report_secret": "123456",#http上报密钥，见下文Llonebot配置，如果选择反向ws连接则可不填。
+        "connection_type": 连接类型，可选`http`和`ws_reverse`，具体见下文。
         "proxy_api_base": "https://api.openai.com/v1",#api请求地址,默认为官方
         "system_message": {
-            "character": "",#人设，最重要
-            "order": "",#不重要
-            "impression": ""#不重要
+            "character": ""#机器人人设
         },
-        "reply_probability": 0.5#群聊中没有nickname时触发主动聊天的概率
+        "reply_probability": 0.5 #群聊中没有nickname时触发主动聊天的概率
+        "r18": 0为关闭r18，1开启r18，2为随机发送(慎选)
+        "audio_save_path": 语音文件保存位置
+        "voice_service_url": 语音接口地址
+        "cha_name"：语音接口指定角色
       }
       ```
     填完后按下esc退出输入，再输入`:wq`回车保存
@@ -91,6 +95,8 @@
   - `audio_save_path`: 语音文件保存位置
   - `voice_service_url`: 语音接口地址
   - `cha_name`：语音接口指定角色
+
+
  - ### 部署Llonebot:
     [建议查看官方文档](https://llonebot.github.io/zh-CN/)
 
@@ -106,6 +112,50 @@
 
   若使用反向ws连接则仅需这样配置：
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240720181142.png)
+
+## 数据库
+
+本项目使用 MongoDB 作为数据库。MongoDB 是一个文档导向的 NoSQL 数据库，具有高性能、高可用性和易扩展性的特点。
+
+### MongoDB vs SQLite
+
+虽然 SQLite 是一个轻量级的选择，但 MongoDB 在以下方面具有优势：
+
+1. 可扩展性：MongoDB 可以轻松处理大量数据和高并发访问。
+2. 灵活性：MongoDB 的文档模型允许存储复杂的数据结构，无需预定义模式。
+3. 查询能力：MongoDB 提供强大的查询语言，支持复杂的数据分析。
+4. 分布式：MongoDB 支持分片，可以在多台服务器上分布数据。
+
+### 安装和配置 MongoDB
+
+1. 下载 MongoDB：
+   访问 [MongoDB 下载页面](https://www.mongodb.com/try/download/community) 并下载适合你操作系统的版本。
+
+2. 安装 MongoDB：
+   按照官方文档的指引进行安装。
+
+3. 启动 MongoDB 服务：
+   - Windows: 
+     进入 MongoDB 安装目录，运行以下命令（请根据实际情况修改路径）：
+     ```
+     mongod --dbpath D:\MongoDB\data --logpath D:\MongoDB\log\mongodb.log --logappend
+     ```
+     注意：请确保指定的数据和日志目录已经存在。
+   - macOS/Linux: 运行 `sudo systemctl start mongod`
+
+4. 注意：确保在启动机器人之前，MongoDB 服务已经正常运行。
+
+### 数据库操作
+
+本项目使用 `app/database.py` 文件管理数据库操作。主要功能包括：
+
+- 存储用户信息
+- 记录聊天历史
+- 管理会话上下文
+
+数据库的具体配置和操作已在 `database.py` 中实现，无需额外配置。
+
+
 ## 运行机器人
 
 在终端中执行以下命令启动机器人：
@@ -120,8 +170,10 @@ python main.py
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001141.png)
   - 发送`来份涩图`，`来份色图`，`再来一张` 即可发送随机涩图
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001208.png)
-  - 发送`画一张`，`生成一张` 即可发送AI绘画
+  - 发送`画一张`，`生成一张` 即可发送AI绘画（目前默认使用dalle进行AI绘画，若需使用AI绘画功能，模型必须为gpt系列）
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001253.png)
+  - 发送`语音说`，``语音回复` +`要用语音说的话`让机器人发送语音，或者再提示词里提示机器人通过把`3voice`标签放在回复的开头，实现更生动地语音回复。
+  ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240720233521.png)
   - R-18?
   该接口的涩图数量足有十几万，其中r18占27.8%，建议公共场合尽量设置为0，2的话，还是不要太相信自己的运气了(问就是惨痛的教训)
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616002550.png)
@@ -146,7 +198,7 @@ python main.py
   - [x] 接入图片接口
   - [x] 自定义人格
   - [x] 新增支持反向ws连接
-  - [x] 接入语音接口 
+  - [x] 接入语音接口 #本地搭建参考b站箱庭xter的视频： https://b23.tv/9dOdMo6
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
   - [x] 新增图片识别功能，需要模型为`GPT4`系列或在`model.json`里设置`vision`为`true`
 
