@@ -14,6 +14,7 @@ from app.config import Config
 from app.database import MongoDB
 from utils.receive import start_http_server, start_reverse_ws, rev_msg, close_connection
 from commands.reset import session_timeout_check
+from app.task_manger import task_manager
 
 # 定义全局线程池
 thread_pool = ThreadPoolExecutor(max_workers=10)
@@ -49,40 +50,44 @@ class FlaskServer:
         if self.thread.is_alive():
             logger.warning("Flask 应用程序未能在预期时间内关闭")
 
-# 同步包装函数
-def sync_process_private_message(rev):
-    asyncio.run(process_private_message(rev))
-
-def sync_process_group_message(rev):
-    asyncio.run(process_group_message(rev))
+async def process_message(rev_message):
+    if rev_message and 'post_type' in rev_message:
+        if rev_message['post_type'] == 'message':
+            message_type = rev_message.get('message_type')
+            if message_type == "private":
+                asyncio.create_task(process_private_message(rev_message))
+            elif message_type == "group":
+                asyncio.create_task(process_group_message(rev_message))
+        elif rev_message['post_type'] == 'meta_event':
+            if rev_message['meta_event_type'] == 'heartbeat':
+                logger.debug("Received heartbeat")
+            elif rev_message['meta_event_type'] == 'lifecycle' and rev_message['sub_type'] == 'connect':
+                logger.info("Connection established")
+    else:
+        logger.warning(f"Received unexpected message format: {rev_message}")
 
 async def main_loop():
-    logger.info("程序已启动，正在监听消息...")
-
+    logger.info("HTTP 轮询进程已启动，正在监听消息...")
     while not shutdown_event.is_set():
         try:
-            rev_message = await asyncio.wait_for(rev_msg(), timeout=1.0)
-            if rev_message and 'post_type' in rev_message:
-                if rev_message['post_type'] == 'message':
-                    message_type = rev_message.get('message_type')
-                    if message_type == "private":
-                        await asyncio.get_event_loop().run_in_executor(thread_pool, sync_process_private_message, rev_message)
-                    elif message_type == "group":
-                        await asyncio.get_event_loop().run_in_executor(thread_pool, sync_process_group_message, rev_message)
-                elif rev_message['post_type'] == 'meta_event':
-                    if rev_message['meta_event_type'] == 'heartbeat':
-                        logger.debug("Received heartbeat")
-                    elif rev_message['meta_event_type'] == 'lifecycle' and rev_message['sub_type'] == 'connect':
-                        # 忽略连接建立时的生命周期事件
-                        pass
-            else:
-                logger.warning(f"Received unexpected message format: {rev_message}")
+            rev_message = await asyncio.wait_for(rev_msg(), timeout=1.0)           
+            await task_manager.add_task(process_message(rev_message))
+            #logger.info(f"放入任务队列: {rev_message}")
         except asyncio.TimeoutError:
             continue
         except Exception as e:
             logger.error(f"Error in main loop: {e}")
+    logger.info("HTTP 轮询进程已停止")
 
-    logger.info("Main loop 已停止")
+async def ws_process():
+    while not shutdown_event.is_set():
+        try:
+            rev_message = await rev_msg()
+            await task_manager.add_task(process_message(rev_message))
+            #logger.info(f"放入任务队列: {rev_message}")
+        except Exception as e:
+            logger.error(f"Error in WebSocket process: {e}")
+    logger.info("WebSocket 进程已停止")
 
 
 # 定义定期清理任务
@@ -108,6 +113,7 @@ async def main():
     schedule_thread.start()
 
     flask_server.start()
+    await task_manager.start()
 
     try:
         if config.CONNECTION_TYPE == 'http':
@@ -119,9 +125,10 @@ async def main():
         elif config.CONNECTION_TYPE == 'ws_reverse':
             await asyncio.gather(
                 start_reverse_ws(),
-                main_loop(),
+                ws_process(),
                 session_timeout_check()
             )
+        session_timeout_check()
     except asyncio.CancelledError:
         logger.info("主任务被取消")
     finally:

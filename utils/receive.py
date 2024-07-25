@@ -4,7 +4,7 @@ import asyncio
 import re
 from app.database import MongoDB
 from app.config import Config
-from app.driver import receive_msg, send_msg, close, start_reverse_ws_server, call_api
+from app.driver import close, start_reverse_ws_server, call_api
 
 config = Config.get_instance()
 
@@ -52,19 +52,19 @@ async def handle_message(rev_json):
     if rev_json['post_type'] == 'message':
         user_input = rev_json.get('raw_message', '')
         user_id = rev_json.get('sender', {}).get('user_id')
-        username = rev_json.get('sender', {}).get('nickname')
+        # username = rev_json.get('sender', {}).get('nickname')
         group_id = rev_json.get('group_id')
         context_type = 'private' if rev_json.get('message_type') == 'private' else 'group'
         context_id = user_id if context_type == 'private' else group_id
 
         if user_input:
-            db.insert_chat_message(user_id, user_input, '', context_type, context_id, username)
+            db.insert_chat_message(user_id, user_input, '', context_type, context_id)
 
             if await handle_priority_command(rev_json):
                 return
 
             # 要屏蔽的id
-            block_id = [3780469992, 3542896617, 3758919058]
+            block_id = config.BLOCK_ID
 
             if user_id not in block_id:
                 await message_queue.put(rev_json)
@@ -130,6 +130,12 @@ async def close_connection():
 
 # 异步的消息接收函数
 async def rev_msg():
-    return await message_queue.get()  # 直接从队列获取消息
+    try:
+        message = await message_queue.get()
+        logger.debug(f"Retrieved message from queue: {message}")
+        return message
+    except Exception as e:
+        logger.error(f"Error retrieving message from queue: {e}")
+        return None
 
 __all__ = ['message_queue', 'start_http_server', 'start_reverse_ws', 'rev_msg', 'call_api', 'close_connection']
