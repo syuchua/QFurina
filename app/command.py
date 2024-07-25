@@ -18,9 +18,23 @@ async def handle_command(command, msg_type, recipient_id, send_msg, context_type
     elif main_command == 'character':
         await handle_character_command(msg_type, recipient_id, send_msg)
     elif main_command == 'history':
-        await handle_history_command(msg_type, recipient_id, context_type, context_id, send_msg)
+        count = None
+        if args:
+            try:
+                count = int(args)
+            except ValueError:
+                await send_msg(msg_type, recipient_id, "请在 history 后输入一个有效的数字。")
+                return
+        await handle_history_command(msg_type, recipient_id, context_type, context_id, send_msg, count)
     elif main_command == 'clear':
-        await handle_clear_history_command(msg_type, recipient_id, context_type, context_id, send_msg)
+        count = None
+        if args:
+            try:
+                count = int(args)
+            except ValueError:
+                await send_msg(msg_type, recipient_id, "请在 clear 后输入一个有效的数字。")
+                return
+        await handle_clear_history_command(msg_type, recipient_id, context_type, context_id, send_msg, count)
     elif main_command == 'model':
         if args:  # model 命令需要一个额外的参数
             new_model = args

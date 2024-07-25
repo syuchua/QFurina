@@ -19,7 +19,7 @@ config = Config.get_instance()
 db = MongoDB()
 
 # 超时重试装饰器
-def retry_on_timeout(retries=3, timeout=10):
+def retry_on_timeout(retries=1, timeout=10):
     def decorator(func):
         async def wrapper(*args, **kwargs):
             for attempt in range(retries):
@@ -39,8 +39,9 @@ async def send_http_request(url, json):
             res.raise_for_status()
             response = await res.json()
             return response
+
 @select_connection_method
-async def send_msg(msg_type, number, msg, use_voice=False):
+async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=False):
     if use_voice:
         try:
             audio_filename = await generate_voice(msg)
@@ -60,7 +61,8 @@ async def send_msg(msg_type, number, msg, use_voice=False):
             if 'status' in response and response['status'] == 'failed':
                 error_msg = response.get('message', response.get('wording', 'Unknown error'))
                 logger.error(f"Failed to send {msg_type} message: {error_msg}")
-                await send_msg(msg_type, number, f"发送消息失败: {error_msg}")
+                if not is_error_message:
+                    await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
             else:
                 logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
                 logger.debug(f"API response: {response}")
@@ -88,57 +90,61 @@ def process_chat_message(msg_type):
     def decorator(func):
         @wraps(func)
         async def wrapper(rev, *args, **kwargs):
-            user_input = rev['raw_message']
-            user_id = rev['sender']['user_id']
-            username = rev['sender']['nickname']
-            recipient_id = rev['sender']['user_id'] if msg_type == 'private' else rev['group_id']
-            context_type = 'private' if msg_type == 'private' else 'group'
-            context_id = recipient_id
+            try:
+                user_input = rev['raw_message']
+                user_id = rev['sender']['user_id']
+                username = rev['sender']['nickname']
+                recipient_id = rev['sender']['user_id'] if msg_type == 'private' else rev['group_id']
+                context_type = 'private' if msg_type == 'private' else 'group'
+                context_id = recipient_id
 
-            user_info = {"user_id": user_id, "username": username}
-            db.insert_user_info(user_info)
+                user_info = {"user_id": user_id, "username": username}
+                db.insert_user_info(user_info)
 
-            # 调用原始函数，可能会修改 user_input 或执行其他特定逻辑
-            modified_input = await func(rev, *args, **kwargs)
-            if modified_input is None:
-                return  # 如果返回 None，表示不需要回复，直接返回
-            if modified_input is not None:
-                user_input = modified_input
+                # 调用原始函数，可能会修改 user_input 或执行其他特定逻辑
+                modified_input = await func(rev, *args, **kwargs)
+                if modified_input is None:
+                    return  # 如果返回 None，表示不需要回复，直接返回
+                if modified_input is not None:
+                    user_input = modified_input
 
-            # 检测命令
-            full_command = await handle_command_request(user_input)
-            if full_command:
-                await handle_command(full_command, msg_type, recipient_id, send_msg, context_type, context_id)
-                return
+                # 检测命令
+                full_command = await handle_command_request(user_input)
+                if full_command:
+                    await handle_command(full_command, msg_type, recipient_id, send_msg, context_type, context_id)
+                    return
 
-            # 处理特殊请求
-            special_response = await handle_special_requests(user_input)
-            if special_response:
-                await send_msg(msg_type, recipient_id, special_response)
-                db.insert_chat_message(user_id, user_input, special_response, context_type, context_id, username)
-                return
+                # 处理特殊请求
+                special_response = await handle_special_requests(user_input)
+                if special_response:
+                    await send_msg(msg_type, recipient_id, special_response)
+                    db.insert_chat_message(user_id, user_input, special_response, context_type, context_id)
+                    return
 
-            recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
-            system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
-            messages = [{"role": "system", "content": system_message_text}] + recent_messages + [{"role": "user", "content": user_input}]
+                recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
+                system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
+                messages = [{"role": "system", "content": system_message_text}] + recent_messages + [{"role": "user", "content": user_input}]
 
-            response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
-            if response_text is None:
-                response_text = await get_chat_response(messages)
+                response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
+                if response_text is None:
+                    response_text = await get_chat_response(messages)
 
-            if response_text:
-                db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, username)
-                # 添加一个参数来指示是否处理特殊响应
-                process_special = not user_input.startswith(('!history', '/history', '#history'))
-                await process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, username, process_special=process_special)
+                if response_text:
+                    db.insert_chat_message(user_id, user_input, response_text, context_type, context_id)
+                    # 添加一个参数来指示是否处理特殊响应
+                    process_special = not user_input.startswith(('!history', '/history', '#history'))
+                    await process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, process_special=process_special)
 
-            if user_id == config.ADMIN_ID:
-                admin_title = random.choice(config.ADMIN_TITLES)
-                response_with_username = f"{admin_title}，{response_text}"
-            else:
-                response_with_username = f"{username}，{response_text}"
+                if user_id == config.ADMIN_ID:
+                    admin_title = random.choice(config.ADMIN_TITLES)
+                    response_with_username = f"{admin_title}，{response_text}"
+                else:
+                    response_with_username = f"{username}，{response_text}"
 
-            await send_msg(msg_type, recipient_id, response_with_username)
+                await send_msg(msg_type, recipient_id, response_with_username)
+            except Exception as e:
+                logger.error(f"Error in process_chat_message: {e}")
+                await send_msg(msg_type, recipient_id, "阿巴阿巴，出错了。")
         
         return wrapper
     return decorator
@@ -158,7 +164,7 @@ async def handle_special_requests(user_input):
 
     return None
 
-async def process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, username, process_special=True):
+async def process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, process_special=True):
     if process_special and '#voice' in response_text:
         logger.info("Voice request detected")
         voice_pattern = re.compile(r"#voice\s*(.*)", re.DOTALL)
@@ -174,7 +180,7 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
                 logger.info(f"Audio filename: {audio_filename}")
                 if (audio_filename):
                     await send_msg(msg_type, recipient_id, f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]")
-                    db.insert_chat_message(user_id, user_input, f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]", context_type, context_id, username)
+                    db.insert_chat_message(user_id, user_input, f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]", context_type, context_id)
                 else:
                     await send_msg(msg_type, recipient_id, "语音合成失败。")
                 return
@@ -185,8 +191,14 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
         recognition_result = await handle_image_recognition(response_text[10:].strip())
         if recognition_result:
             await send_msg(msg_type, recipient_id, f"识别结果：{recognition_result}")
-            db.insert_chat_message(user_id, user_input, f"识别结果：{recognition_result}", context_type, context_id, username)
+            db.insert_chat_message(user_id, user_input, f"识别结果：{recognition_result}", context_type, context_id)
         return
+    # elif process_special and response_text.startswith('#draw'):
+    #     draw_result = await handle_image_request(response_text[5:].strip())
+    #     if draw_result:
+    #         await send_msg(msg_type, recipient_id, f"[CQ:image,file={draw_result}]")
+    #         db.insert_chat_message(user_id, user_input, f"[CQ:image,file={draw_result}]", context_type, context_id, username)
+    #     return
 
 
 @process_chat_message('private')
@@ -202,7 +214,7 @@ async def process_group_message(rev):
     group_id = rev['group_id']
     user_id = rev['sender']['user_id']
 
-    block_id = [3780469992, 3542896617, 3758919058]
+    block_id = config.BLOCK_ID
     contains_nickname = any(nickname in user_input for nickname in config.NICKNAMES)
     is_sender_blocked = user_id in block_id
     at_bot_message = r'\[CQ:at,qq={}\]'.format(config.SELF_ID)

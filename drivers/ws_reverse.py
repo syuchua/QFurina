@@ -32,7 +32,7 @@ class WsReverseDriver:
                     if echo in self._api_response_futures:
                         self._api_response_futures[echo].set_result(data)
                 else:
-                    # This is an event
+                    # This is an event, add it to the task queue
                     await self._message_handler(data)
         except websockets.ConnectionClosed as e:
             logger.error(f"WebSocket connection closed unexpectedly: {e}")
@@ -95,7 +95,6 @@ class WsReverseDriver:
         except Exception as e:
             if hasattr(e, 'status') and e.status in [404, 429]:
                 raise
-            logger.error(f"Error sending message via WebSocket: {e}")
             raise
 
     
