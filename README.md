@@ -189,8 +189,8 @@ python main.py
 - `/help`：显示帮助信息。
 - `/reset`：重置当前会话。
 - `/character`：输出`config.json`中的`character`值，也即当前的人设。
-- `/history`: 输出之前的十条消息记录。
-- `/clear`:清除之前十条消息记录。
+- `/history`: 输出之前的条消息记录，默认十条，也可以接空格+数字指定。
+- `/clear`:清除消息记录，默认十条，可接空格+数字指定。
 
 ## TODO
   - [x] 基本的消息接收和发送功能
