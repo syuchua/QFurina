@@ -8,3 +8,4 @@ Pillow==10.4.0
 pymongo==4.8.0
 Requests==2.32.3
 schedule==1.2.2
+websockets==12.0
