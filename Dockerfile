@@ -33,13 +33,14 @@ EXPOSE 8011
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# 创建并使用非 root 用户运行应用
-RUN useradd -m myuser
-USER myuser
-
 # 创建启动脚本
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
+
+# 创建并切换到非 root 用户
+RUN useradd -m myuser
+RUN chown -R myuser:myuser /app
+USER myuser
 
 # 使用启动脚本
 CMD ["/app/start.sh"]
