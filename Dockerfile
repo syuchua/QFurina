@@ -7,6 +7,9 @@ WORKDIR /app
 # 将当前目录下所有文件复制到工作目录
 COPY . /app
 
+# 列出 /app 目录内容（用于调试）
+RUN ls -la /app
+
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -27,5 +30,8 @@ EXPOSE 8011
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
 
+# 再次列出 /app 目录内容（用于调试）
+RUN ls -la /app
+
 # 启动应用
-CMD ["python", "main.py"]
+CMD ["python", "/app/main.py"]
