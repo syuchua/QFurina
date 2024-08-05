@@ -174,6 +174,8 @@ python main.py
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001253.png)
   - 发送`语音说`，``语音回复` +`要用语音说的话`让机器人发送语音，或者再提示词里提示机器人通过把`3voice`标签放在回复的开头，实现更生动地语音回复。
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240720233521.png)
+  - 发送`点歌`+歌曲名进行点歌，支持模糊匹配。
+  ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240805154117.png)
   - R-18?
   该接口的涩图数量足有十几万，其中r18占27.8%，建议公共场合尽量设置为0，2的话，还是不要太相信自己的运气了(问就是惨痛的教训)
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616002550.png)
@@ -191,6 +193,9 @@ python main.py
 - `/character`：输出`config.json`中的`character`值，也即当前的人设。
 - `/history`: 输出之前的条消息记录，默认十条，也可以接空格+数字指定。
 - `/clear`:清除消息记录，默认十条，可接空格+数字指定。
+- `/music_list`: 获取歌曲列表
+- `/r18 [0, 1, 2]`切换涩图接口r18模式，0为关闭，1为开启，2随机
+- `/model [new_model]`切换模型，新模型需先在model.json中配置好。
 
 ## TODO
   - [x] 基本的消息接收和发送功能
