@@ -1,4 +1,4 @@
-import logging
+from app.logger import logger
 import re
 import ssl
 from urllib.parse import parse_qs, urlparse
@@ -46,10 +46,10 @@ async def download_image(image_url):
                 image = Image.open(BytesIO(file_bytes))
                 return image
             except aiohttp.ClientError as e:
-                logging.error(f"Error downloading the image: {e}")
+                logger.error(f"Error downloading the image: {e}")
                 return None
             except IOError as e:
-                logging.error(f"Error opening the image: {e}")
+                logger.error(f"Error opening the image: {e}")
                 return None
 
 def image_to_base64(image):
@@ -66,7 +66,7 @@ async def get_cq_image_base64(cq_code):
     """
     image_url = decode_cq_code(cq_code)
     if image_url:
-        logging.info(f"Image URL: {image_url}")
+        # logger.info(f"Image URL: {image_url}")
         image = await download_image(image_url)
         if image:
             image_base64 = image_to_base64(image)

@@ -1,6 +1,7 @@
 # command.py
 from commands.help import handle_help_command
 from commands.history import handle_clear_history_command, handle_history_command
+from commands.music_list import handle_music_list_command
 from commands.reset import handle_reset_command
 from commands.character import handle_character_command
 from commands.model import handle_model_command
@@ -17,6 +18,8 @@ async def handle_command(command, msg_type, recipient_id, send_msg, context_type
         await handle_reset_command(msg_type, recipient_id, send_msg)
     elif main_command == 'character':
         await handle_character_command(msg_type, recipient_id, send_msg)
+    elif main_command == 'music_list':
+        await handle_music_list_command(msg_type, recipient_id, send_msg) 
     elif main_command == 'history':
         count = None
         if args:

@@ -10,7 +10,7 @@ from app.command import handle_command
 from app.decorators import select_connection_method
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
-from app.function_calling import handle_image_request, handle_voice_request, handle_image_recognition, handle_command_request
+from app.function_calling import handle_image_request, handle_voice_request, handle_image_recognition, handle_command_request, handle_music_request
 from app.database import MongoDB
 
 config = Config.get_instance()
@@ -123,6 +123,11 @@ def process_chat_message(msg_type):
 
                 recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
                 system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
+                if user_id == config.ADMIN_ID:
+                    admin_title = random.choice(config.ADMIN_TITLES)
+                    user_input = f"{admin_title}: {user_input}"
+                else:
+                    user_input = f"{username}: {user_input}"
                 messages = [{"role": "system", "content": system_message_text}] + recent_messages + [{"role": "user", "content": user_input}]
 
                 response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
@@ -135,9 +140,8 @@ def process_chat_message(msg_type):
                     process_special = not user_input.startswith(('!history', '/history', '#history'))
                     await process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, process_special=process_special)
 
-                if user_id == config.ADMIN_ID:
-                    admin_title = random.choice(config.ADMIN_TITLES)
-                    response_with_username = f"{admin_title}，{response_text}"
+                if user_id == config.ADMIN_ID:                    
+                    response_with_username = response_text
                 else:
                     response_with_username = f"{username}，{response_text}"
 
@@ -157,12 +161,23 @@ async def handle_special_requests(user_input):
     voice_url = await handle_voice_request(user_input)
     if voice_url:
         return f"[CQ:record,file={voice_url}]"
-
+    
+    music_response = await handle_music_request(user_input)
+    if music_response:
+        if music_response.startswith("http"):
+            return f"[CQ:record,file={music_response}]"
+        else:
+            return music_response  # 返回错误消息
+        
     recognition_result = await handle_image_recognition(user_input)
     if recognition_result:
         return f"识别结果：{recognition_result}"
 
     return None
+
+def is_chinese(char):
+    """检查一个字符是否是中文"""
+    return '\u4e00' <= char <= '\u9fff'
 
 async def process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, process_special=True):
     if process_special and '#voice' in response_text:
@@ -172,8 +187,8 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
         if voice_match:
             voice_text = voice_match.group(1).strip()
             voice_text = voice_text.replace('\n', '.')
-            voice_text = re.sub(r'\[.*?\]', '', voice_text)
-            voice_text = re.sub(r'\(.*?\)', '', voice_text)
+            voice_text = re.sub(r'\[.*?\]', '', voice_text) # 移除方括号内的内容
+            voice_text = re.sub(r'\(.*?\)', '', voice_text) # 移除圆括号内的内容
             logger.info(f"Voice text: {voice_text}")
             try:
                 audio_filename = await asyncio.wait_for(generate_voice(voice_text), timeout=10)
@@ -187,19 +202,41 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
             except asyncio.TimeoutError:
                 await send_msg(msg_type, recipient_id, "语音合成超时，请稍后再试。")
                 return
-    elif process_special and response_text.startswith('#recognize'):
+    elif process_special and '#recognize' in response_text:
         recognition_result = await handle_image_recognition(response_text[10:].strip())
         if recognition_result:
             await send_msg(msg_type, recipient_id, f"识别结果：{recognition_result}")
             db.insert_chat_message(user_id, user_input, f"识别结果：{recognition_result}", context_type, context_id)
         return
-    # elif process_special and response_text.startswith('#draw'):
-    #     draw_result = await handle_image_request(response_text[5:].strip())
-    #     if draw_result:
-    #         await send_msg(msg_type, recipient_id, f"[CQ:image,file={draw_result}]")
-    #         db.insert_chat_message(user_id, user_input, f"[CQ:image,file={draw_result}]", context_type, context_id, username)
-    #     return
-
+    elif process_special and '#draw' in response_text:
+        logger.info("Draw request detected")
+        draw_pattern = re.compile(r"#draw\s*(.*)", re.DOTALL)
+        draw_match = draw_pattern.search(response_text)
+        if draw_match:
+            draw_prompt = draw_match.group(1).strip()
+            # 清理 prompt
+            draw_prompt = draw_prompt.replace('\n', ' ')  # 将换行符替换为空格
+            draw_prompt = re.sub(r'\[.*?\]', '', draw_prompt)  # 移除方括号内的内容
+            draw_prompt = draw_prompt.replace('()', '') # 移除圆括号
+            draw_prompt = re.sub(r'[,，。.…]+', ' ', draw_prompt)  # 替换逗号、句号、省略号为空格
+            draw_prompt = re.sub(r'\s+', ',', draw_prompt)  # 将多个空格替换为逗号           
+            draw_prompt = ''.join([char for char in draw_prompt if not is_chinese(char)])  # 移除中文字符         
+            draw_prompt = draw_prompt.strip()  # 去除首尾空格
+            # draw_prompt = re.sub(r'\s+', ',', draw_prompt)  # 将空格替换为逗号
+            draw_prompt = draw_prompt[:-2] # 移除前三个字符
+            draw_prompt = re.sub(r'^[,.。... ! ?\s]+|[,.。... ! ?\s]+$', '', draw_prompt) # 移除开头和结尾的标点符号和空格
+            logger.info(f"Draw prompt: {draw_prompt}")
+        try:
+            draw_result = await handle_image_request(response_text)
+            if draw_result:
+                await send_msg(msg_type, recipient_id, f"[CQ:image,file={draw_result}]")
+                db.insert_chat_message(user_id, user_input, f"[CQ:image,file={draw_result}]", context_type, context_id)
+            else:
+                await send_msg(msg_type, recipient_id, "抱歉，我无法生成这个图片。可能是提示词不够清晰或具体。")
+        except Exception as e:
+            logger.error(f"Error during image generation: {e}")
+            await send_msg(msg_type, recipient_id, "图片生成过程中出现错误，请稍后再试。")
+        return
 
 @process_chat_message('private')
 async def process_private_message(rev):

@@ -19,3 +19,16 @@ def voice_files(filename):
     else:
         logger.info(f"文件不存在: {file_path}")
         return 'File not found', 404
+
+@app.route('/data/music/<filename>', methods=['GET', 'POST'])
+def music_files(filename):
+    logger.info(f"用户请求文件: {filename}")
+    currend_work_dir = os.getcwd()
+    logger.debug(f"当前工作目录: {currend_work_dir}")
+    file_path = os.path.join(f'{currend_work_dir}/data/music', filename)
+    if os.path.exists(file_path):
+        logger.info(f"文件存在: {file_path}")
+        return send_file(file_path,as_attachment=True)
+    else:
+        logger.info(f"文件不存在: {file_path}")
+        return 'File not found', 404

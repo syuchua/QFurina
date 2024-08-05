@@ -1,5 +1,5 @@
 import json
-
+from app.logger import logger
 class Config:
     _instance = None
 
@@ -44,11 +44,14 @@ class Config:
         self.ADMIN_TITLES = self.config_data.get('admin_titles')
         self.MESSAGE_QUEUE_SIZE = self.config_data.get('message_queue_size', 10)
         self.CONNECTION_TYPE = self.config_data.get('connection_type', 'http')
+        self.ENABLE_TIME = self.config_data.get('enable_time')
+        self.DISABLE_TIME = self.config_data.get('disable_time')
         with open(DIALOGUES_PATH, 'r', encoding='utf-8') as f:
             self.DIALOGUES = json.load(f)
 
     def reload_config(self):
         self.load_config()
+        logger.info('Config reloaded')
 
 # 获取配置实例
 config = Config.get_instance()

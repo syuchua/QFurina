@@ -16,7 +16,7 @@ class WsReverseDriver:
     async def start_server(self, host: str, port: int, handler: Callable):
         self._message_handler = handler
         self._server = await websockets.serve(self.websocket_handler, host, port)
-        logger.info(f"WebSocket server started on ws://{host}:{port}")
+        logger.info(f"WebSocket server started on ws://{host}:{port}/ws")
 
     async def websocket_handler(self, websocket, path):
         self._websocket = websocket
