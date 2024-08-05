@@ -4,7 +4,7 @@ FROM python:3.11
 # 设置工作目录
 WORKDIR /app
 
-# 将当前目录下所有文件复制到工作目录
+# 复制项目文件
 COPY . /app
 
 # 安装 Python 依赖
@@ -19,13 +19,28 @@ RUN apt-get update && \
     apt-get install -y mongodb-org-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# 暴露端口3001用于接收QQ上报的http消息
+# 确保配置文件夹存在并有正确的权限
+RUN mkdir -p /app/config && chown -R root:root /app/config && chmod -R 755 /app/config
+
+# 复制配置文件（如果它们不在 .dockerignore 中）
+COPY config/* /app/config/
+
+# 暴露端口
 EXPOSE 3001
-# 暴露端口8011用于WebSocket连接
 EXPOSE 8011
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
-# 启动应用
-CMD ["python", "main.py"]
+# 创建启动脚本
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# 创建并切换到非 root 用户
+RUN useradd -m myuser
+RUN chown -R myuser:myuser /app
+USER myuser
+
+# 使用启动脚本
+CMD ["/app/start.sh"]
