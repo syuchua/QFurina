@@ -10,7 +10,7 @@ import schedule
 config = Config.get_instance()
 
 class MongoDB:
-    def __init__(self, uri="mongodb://localhost:27017/", db_name="chatbot_db"):
+    def __init__(self, uri="mongodb://mongo:27017/", db_name="chatbot_db"):
         self.client = MongoClient(uri)
         self.db = self.client[db_name]
         self.ensure_indexes()
