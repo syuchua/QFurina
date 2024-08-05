@@ -18,7 +18,8 @@ from app.task_manger import task_manager
 
 # 定义全局线程池
 thread_pool = ThreadPoolExecutor(max_workers=10)
-
+CONNECTION_ENABLED = threading.Event()
+CONNECTION_ENABLED.set()  # 默认开启
 # 定义一个事件来控制主循环
 shutdown_event = asyncio.Event()
 
@@ -51,6 +52,9 @@ class FlaskServer:
             logger.warning("Flask 应用程序未能在预期时间内关闭")
 
 async def process_message(rev_message):
+    if not CONNECTION_ENABLED.is_set():
+        logger.debug("连接已禁用，忽略消息")
+        return
     if rev_message and 'post_type' in rev_message:
         if rev_message['post_type'] == 'message':
             message_type = rev_message.get('message_type')
@@ -96,8 +100,12 @@ def schedule_jobs():
     exempt_users = [config.ADMIN_ID]
     exempt_groups = []
 
+    schedule.every().day.at(config.DISABLE_TIME).do(disable_connection)
+    schedule.every().day.at(config.ENABLE_TIME).do(enable_connection)
+
+
     schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
-    schedule.every().day.at("03:00").do(clean_old_logs, days=30)
+    schedule.every().day.at("03:00").do(clean_old_logs, days=14)
 
     voice_directory = os.path.join(os.getcwd(), config.AUDIO_SAVE_PATH)
     schedule.every(60).minutes.do(clean_voice_directory, directory=voice_directory)
@@ -105,6 +113,21 @@ def schedule_jobs():
     while not shutdown_event.is_set():
         schedule.run_pending()
         time.sleep(5)  # 减少睡眠时间，以便更快地响应关闭信号
+
+def enable_connection():
+    if not CONNECTION_ENABLED.is_set():
+        CONNECTION_ENABLED.set()
+        logger.info("连接已启用")
+    else:
+        logger.debug("连接已经处于启用状态")
+
+def disable_connection():
+    if CONNECTION_ENABLED.is_set():
+        CONNECTION_ENABLED.clear()
+        logger.info("连接已禁用")
+    else:
+        logger.debug("连接已经处于禁用状态")
+
 
 # 异步任务管理器
 async def main():
@@ -117,22 +140,37 @@ async def main():
 
     try:
         if config.CONNECTION_TYPE == 'http':
-            await asyncio.gather(
-                start_http_server(),
-                main_loop(),
-                session_timeout_check()
-            )
+            http_server_task = asyncio.create_task(start_http_server())
         elif config.CONNECTION_TYPE == 'ws_reverse':
-            await asyncio.gather(
-                start_reverse_ws(),
-                ws_process(),
-                session_timeout_check()
-            )
-        session_timeout_check()
+            ws_server_task = asyncio.create_task(start_reverse_ws())
+
+        timeout_check_task = asyncio.create_task(session_timeout_check())
+
+        while not shutdown_event.is_set():
+            if CONNECTION_ENABLED.is_set():
+                try:
+                    if config.CONNECTION_TYPE == 'http':
+                        rev_message = await asyncio.wait_for(rev_msg(), timeout=1.0)
+                    else:  # ws_reverse
+                        rev_message = await rev_msg()
+                    
+                    await task_manager.add_task(process_message(rev_message))
+                except asyncio.TimeoutError:
+                    continue
+                except Exception as e:
+                    logger.error(f"Error in message processing: {e}", exc_info=True)
+                    await asyncio.sleep(1)  # 在错误发生后短暂暂停，避免rapid failing
+
+
     except asyncio.CancelledError:
         logger.info("主任务被取消")
     finally:
         shutdown_event.set()
+        if config.CONNECTION_TYPE == 'http':
+            http_server_task.cancel()
+        elif config.CONNECTION_TYPE == 'ws_reverse':
+            ws_server_task.cancel()
+        timeout_check_task.cancel()
         await close_connection()  # 确保关闭连接
         flask_server.shutdown()
         thread_pool.shutdown(wait=False)  # 关闭线程池

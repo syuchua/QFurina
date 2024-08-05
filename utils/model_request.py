@@ -5,7 +5,7 @@ from app.logger import logger
 import os
 import aiohttp
 from app.config import Config
-from utils.cqimage import decode_cq_code
+from utils.cqimage import decode_cq_code, get_cq_image_base64
 
 config = Config.get_instance()
 
@@ -108,7 +108,7 @@ async def get_chat_response(messages):
             model=model_config.get('model') or default_config.get('model', 'gpt-3.5-turbo'),
             messages=messages,
             temperature=0.5,
-            max_tokens=2000,
+            max_tokens=2048,
             top_p=0.95,
             stream=False,
             stop=None,
@@ -143,15 +143,9 @@ async def recognize_image(cq_code):
         raise Exception("API does not support image recognition.")
         
     try:
-        # 解析CQ码中的图像URL
-        image_url = decode_cq_code(cq_code)
-        if not image_url:
-            raise ValueError("No valid image URL found in CQ code")
-        
-        # 获取图像数据
-        async with httpx.AsyncClient() as client:
-            response = await client.get(image_url)
-            image_data = base64.b64encode(response.content).decode("utf-8")
+        # 从CQ码中提取图片base64编码
+        image_data = await get_cq_image_base64(cq_code)
+        #logger.info(f"Image base64: {image_data}")
         
         # 准备消息
         message_content = f"识别图片并用中文回复，图片base64编码:{image_data}"

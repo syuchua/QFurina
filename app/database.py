@@ -61,17 +61,17 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error deduplicating users: {e}")
 
-    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id, username):
+    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id):
         try:
             if response_text:  # 仅保存有回复的消息
                 messages_collection = self.get_collection('messages')
                 message_data = {
                     'user_id': user_id,
-                    'username': username,
                     'user_input': user_input,
                     'response_text': response_text,
                     'context_type': context_type,  # "group" 或 "private"
                     'context_id': context_id,
+                    # 'username': username,
                     'timestamp': time.time()  # 添加时间戳
                 }
                 result = messages_collection.insert_one(message_data)
@@ -125,7 +125,7 @@ class MongoDB:
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
                     msg["_id"] = str(msg["_id"])  # 将 ObjectId 转换为字符串
-                    messages_list.append({"_id": msg['_id'], "role": "user", "content": f"{msg.get('username', 'unknown')}：{user_input}"})
+                    messages_list.append({"_id": msg['_id'], "role": "user", "content": user_input})
                     messages_list.append({"_id": msg['_id'], "role": "assistant", "content": response_text})
 
             return messages_list

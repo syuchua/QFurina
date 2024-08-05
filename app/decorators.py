@@ -1,4 +1,4 @@
-from app.driver import driver_instance
+from app.driver import driver_instance as ws_driver
 from app.config import Config
 from app.logger import logger
 import aiohttp
@@ -6,7 +6,6 @@ import asyncio
 from functools import wraps
 
 config = Config.get_instance()
-
 
 
 def select_connection_method(func):
@@ -18,7 +17,7 @@ def select_connection_method(func):
             return await func(msg_type, number, msg, use_voice, *args, **kwargs)
         elif config.CONNECTION_TYPE == 'ws_reverse':
             try:
-                response = await driver_instance.send_msg(msg_type, number, msg, use_voice)
+                response = await ws_driver.send_msg(msg_type, number, msg, use_voice)
                 logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
                 logger.debug(f"WebSocket API response: {response}")
                 return response
@@ -32,11 +31,9 @@ def select_connection_method(func):
                     error_msg = "资源未找到 (404 错误)。"
                 elif hasattr(e, 'status') and e.status == 429:
                     error_msg = "阿巴阿巴，出错了。"
-                else:
-                    error_msg = f"阿巴阿巴，出错了: {str(e)}"
                 
                 try:
-                    await driver_instance.send_msg(msg_type, number, error_msg)
+                    await ws_driver.send_msg(msg_type, number, error_msg)
                 except Exception:
                     logger.error("Failed to send error message via WebSocket")
                 
