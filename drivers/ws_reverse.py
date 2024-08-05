@@ -1,6 +1,5 @@
 import asyncio
 import json
-import aiohttp
 import websockets
 from app.logger import logger
 from typing import Callable
@@ -32,7 +31,7 @@ class WsReverseDriver:
                     if echo in self._api_response_futures:
                         self._api_response_futures[echo].set_result(data)
                 else:
-                    # This is an event, add it to the task queue
+                    # This is an event
                     await self._message_handler(data)
         except websockets.ConnectionClosed as e:
             logger.error(f"WebSocket connection closed unexpectedly: {e}")
@@ -43,6 +42,7 @@ class WsReverseDriver:
 
     async def call_api(self, action, **params):
         if not self._connected:
+            logger.error("WebSocket connection is not established.")
             raise ConnectionError("WebSocket connection is not established")
 
         echo = str(id(asyncio.current_task()))
@@ -56,48 +56,26 @@ class WsReverseDriver:
 
         try:
             await self._websocket.send(json.dumps(data))
+            # logger.info(f"Sent API call: {data}")
             response = await asyncio.wait_for(future, timeout=10)
-            if 'status' in response and response['status'] == 'failed':
-                error = Exception(response.get('message', response.get('wording', 'Unknown error')))
-                if 'retcode' in response:
-                    error.status = response['retcode']
-                raise error
             return response
         except asyncio.TimeoutError:
             logger.error(f"API call timed out: {data}")
-            raise
-        except aiohttp.ClientConnectorError as e:
-            logger.error(f"Network connection error: {e}")
             raise
         finally:
             del self._api_response_futures[echo]
 
     async def send_msg(self, msg_type, number, msg, use_voice=False):
-        if not self._connected:
-            raise ConnectionError("WebSocket connection is not established")
+        if msg_type == 'private':
+            response = await self.call_api('send_private_msg', user_id=number, message=msg)
+        elif msg_type == 'group':
+            response = await self.call_api('send_group_msg', group_id=number, message=msg)
+        else:
+            raise ValueError(f"Unsupported message type: {msg_type}")
+        
+        logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
+        return response
 
-        try:
-            if msg_type == 'private':
-                response = await self.call_api('send_private_msg', user_id=number, message=msg)
-            elif msg_type == 'group':
-                response = await self.call_api('send_group_msg', group_id=number, message=msg)
-            else:
-                raise ValueError(f"Unsupported message type: {msg_type}")
-            
-            if 'status' in response and response['status'] == 'failed':
-                raise Exception(response.get('message', response.get('wording', 'Unknown error')))
-            
-            return response
-        except asyncio.TimeoutError:
-            raise
-        except aiohttp.ClientConnectorError:
-            raise
-        except Exception as e:
-            if hasattr(e, 'status') and e.status in [404, 429]:
-                raise
-            raise
-
-    
     async def close(self):
         if self._websocket and self._connected:
             try:
