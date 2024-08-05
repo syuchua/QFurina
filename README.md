@@ -89,6 +89,8 @@
   - `system_message`：系统消息配置，最重要的是`character`，相当于机器人的人格。
   - `connection_type`: 连接类型，可选http或ws_reverse
   - `report_secret`: http事件上传密钥。
+  - `enable_time`: 每天自动开始回复时间，如08:00
+  - `disable_time`: 自动停止回复时间如02:00
   - `proxy_api_base`: openai_api_key请求地址，默认为https://api.openai.com/v1
   - `reply_probability`: 当收到的消息中没有nickname时的回复频率，1为每一条都回复，0为仅回复带有nickname的消息，默认0.5
   - `r18`: 0为关闭r18，1开启r18，2为随机发送(慎选)
@@ -172,7 +174,7 @@ python main.py
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001208.png)
   - 发送`画一张`，`生成一张` 即可发送AI绘画（目前默认使用dalle进行AI绘画，若需使用AI绘画功能，模型必须为gpt系列）
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616001253.png)
-  - 发送`语音说`，``语音回复` +`要用语音说的话`让机器人发送语音，或者再提示词里提示机器人通过把`3voice`标签放在回复的开头，实现更生动地语音回复。
+  - 发送`语音说`，``语音回复` +`要用语音说的话`让机器人发送语音，或者再提示词里提示机器人通过把`#voice`标签放在回复的开头，实现更生动地语音回复。
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240720233521.png)
   - 发送`点歌`+歌曲名进行点歌，支持模糊匹配。
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240805154117.png)
