@@ -59,7 +59,7 @@
     - **安装Python环境**：确保您的系统上安装了Python 3.11或更高版本(低版本还没有测试过)。
     - **克隆本项目**
     ```
-    git clone https://github.com/syuchua/MY_QBOT.git
+    git clone -b dev https://github.com/syuchua/MY_QBOT.git
     ```
 
     - **进入项目目录**
@@ -178,6 +178,9 @@ python main.py
   该接口的涩图数量足有十几万，其中r18占27.8%，建议公共场合尽量设置为0，2的话，还是不要太相信自己的运气了(问就是惨痛的教训)
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240616002550.png)
 
+## 本地语音整合包
+
+[GPT-SoVITS-Inference](https://cloud.yuchu.me/s/J2um)
 
 ## 命令功能
 
@@ -186,8 +189,8 @@ python main.py
 - `/help`：显示帮助信息。
 - `/reset`：重置当前会话。
 - `/character`：输出`config.json`中的`character`值，也即当前的人设。
-- `/history`: 输出之前的十条消息记录。
-- `/clear`:清除之前十条消息记录。
+- `/history`: 输出之前的条消息记录，默认十条，也可以接空格+数字指定。
+- `/clear`:清除消息记录，默认十条，可接空格+数字指定。
 
 ## TODO
   - [x] 基本的消息接收和发送功能
