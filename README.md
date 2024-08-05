@@ -184,6 +184,10 @@ python main.py
 
 [GPT-SoVITS-Inference](https://cloud.yuchu.me/s/J2um)
 
+## AI翻唱歌曲压缩包
+[AI翻唱.zip](https://cloud.yuchu.me/s/KRCv)
+解压后放到data/music目录下即可
+
 ## 命令功能
 
 机器人支持以下命令：
