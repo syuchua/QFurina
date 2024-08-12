@@ -1,4 +1,5 @@
 # database.py
+from datetime import datetime, timedelta
 import time
 from bson import ObjectId
 from pymongo import MongoClient
@@ -10,7 +11,7 @@ import schedule
 config = Config.get_instance()
 
 class MongoDB:
-    def __init__(self, uri="mongodb://mongo:27017/", db_name="chatbot_db"):
+    def __init__(self, uri="mongodb://localhost:27017/", db_name="chatbot_db"):
         self.client = MongoClient(uri)
         self.db = self.client[db_name]
         self.ensure_indexes()
@@ -133,6 +134,29 @@ class MongoDB:
             logger.error(f"Error getting recent messages: {e}")
             return []
 
+    def get_user_historical_messages(self, user_id, context_type, context_id, limit=5):
+        try:
+            messages_collection = self.get_collection('messages')
+            query = {
+                "user_id": user_id,
+                "context_type": context_type,
+                "context_id": context_id
+            }
+            messages = messages_collection.find(query).sort("timestamp", -1).limit(limit * 2)  # 获取用户消息和机器人回复
+            messages_list = []
+
+            for msg in reversed(list(messages)):
+                user_input = msg.get('user_input', '(no user input)')
+                response_text = msg.get('response_text', '(no response)')
+                if user_input and response_text and response_text != '(no response)':
+                    messages_list.append({"role": "user", "content": user_input})
+                    messages_list.append({"role": "assistant", "content": response_text})
+
+            return messages_list
+        except Exception as e:
+            logger.error(f"Error getting user historical messages: {e}")
+            return []
+
     def clean_empty_responses(self):
         try:
             messages_collection = self.db['messages']
@@ -206,3 +230,84 @@ class MongoDB:
                 self.delete_message(message['_id'])
         except Exception as e:
             logger.error(f"Error deleting messages: {e}")
+
+    def get_message_count(self, start_time=None, end_time=None, user_id=None, context_type=None, context_id=None):
+        try:
+            messages_collection = self.get_collection('messages')
+            
+            # 构建查询条件
+            match_condition = {}
+            if start_time:
+                match_condition['timestamp'] = {'$gte': start_time}
+            if end_time:
+                match_condition.setdefault('timestamp', {})['$lte'] = end_time
+            if user_id:
+                match_condition['user_id'] = user_id
+            if context_type:
+                match_condition['context_type'] = context_type
+            if context_id:
+                match_condition['context_id'] = context_id
+
+            # 构建聚合管道
+            pipeline = [
+                {'$match': match_condition},
+                {'$group': {
+                    '_id': None,
+                    'count': {'$sum': 1}
+                }}
+            ]
+
+            # 执行聚合查询
+            result = list(messages_collection.aggregate(pipeline))
+
+            # 返回消息数量
+            return result[0]['count'] if result else 0
+
+        except Exception as e:
+            logger.error(f"Error getting message count: {e}")
+            return 0
+
+    def get_daily_message_count(self, days=7, user_id=None, context_type=None, context_id=None):
+        try:
+            messages_collection = self.get_collection('messages')
+            
+            # 计算开始时间
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=days)
+
+            # 构建查询条件
+            match_condition = {
+                'timestamp': {'$gte': start_time.timestamp(), '$lte': end_time.timestamp()}
+            }
+            if user_id:
+                match_condition['user_id'] = user_id
+            if context_type:
+                match_condition['context_type'] = context_type
+            if context_id:
+                match_condition['context_id'] = context_id
+
+            # 构建聚合管道
+            pipeline = [
+                {'$match': match_condition},
+                {'$group': {
+                    '_id': {
+                        'year': {'$year': {'$toDate': {'$multiply': ['$timestamp', 1000]}}},
+                        'month': {'$month': {'$toDate': {'$multiply': ['$timestamp', 1000]}}},
+                        'day': {'$dayOfMonth': {'$toDate': {'$multiply': ['$timestamp', 1000]}}}
+                    },
+                    'count': {'$sum': 1}
+                }},
+                {'$sort': {'_id': 1}}
+            ]
+
+            # 执行聚合查询
+            result = list(messages_collection.aggregate(pipeline))
+
+            # 格式化结果
+            daily_counts = {f"{item['_id']['year']}-{item['_id']['month']:02d}-{item['_id']['day']:02d}": item['count'] for item in result}
+
+            return daily_counts
+
+        except Exception as e:
+            logger.error(f"Error getting daily message count: {e}")
+            return {}

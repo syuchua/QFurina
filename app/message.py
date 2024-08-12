@@ -1,3 +1,4 @@
+# * - message.py - *
 from functools import wraps
 from app.logger import logger
 import re
@@ -10,8 +11,9 @@ from app.command import handle_command
 from app.decorators import select_connection_method
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
-from app.function_calling import handle_image_request, handle_voice_request, handle_image_recognition, handle_command_request, handle_music_request
+from app.function_calling import get_current_time, get_lunar_date_info, handle_command_request, handle_image_recognition, handle_image_request, handle_music_request, handle_voice_request, web_search
 from app.database import MongoDB
+from app.split_message import split_message
 
 config = Config.get_instance()
 
@@ -50,41 +52,54 @@ async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=Fals
         except asyncio.TimeoutError:
             msg = "语音合成超时，请稍后再试。"
 
-    params = {
-        'message': msg,
-        **({'group_id': number} if msg_type == 'group' else {'user_id': number})
-    }
-    if config.CONNECTION_TYPE == 'http':
-        url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
-        try:
-            response = await send_http_request(url, params)
-            if 'status' in response and response['status'] == 'failed':
-                error_msg = response.get('message', response.get('wording', 'Unknown error'))
-                logger.error(f"Failed to send {msg_type} message: {error_msg}")
-                if not is_error_message:
-                    await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
-            else:
-                logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
-                logger.debug(f"API response: {response}")
-        except aiohttp.ClientResponseError as e:
-            if e.status == 404:
-                logger.error(f"Resource not found: {e}")
-                await send_msg(msg_type, number, "资源未找到 (404 错误)。")
-            else:
+    # 使用消息截断器
+    message_parts = split_message(msg)
+    for part in message_parts:
+        params = {
+            'message': part,
+            **({'group_id': number} if msg_type == 'group' else {'user_id': number})
+        }
+        if config.CONNECTION_TYPE == 'http':
+            url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
+            try:
+                response = await send_http_request(url, params)
+                if 'status' in response and response['status'] == 'failed':
+                    error_msg = response.get('message', response.get('wording', 'Unknown error'))
+                    logger.error(f"Failed to send {msg_type} message: {error_msg}")
+                    if not is_error_message:
+                        await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
+                else:
+                    logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
+                    logger.debug(f"API response: {response}")
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404:
+                    logger.error(f"Resource not found: {e}")
+                    await send_msg(msg_type, number, "资源未找到 (404 错误)。")
+                else:
+                    logger.error(f"HTTP error occurred: {e}")
+                    await send_msg(msg_type, number, f"HTTP 错误: {e}")
+            except asyncio.TimeoutError:
+                logger.error("Request timed out after retries")
+                await send_msg(msg_type, number, "请求超时，请稍后再试。")
+            except aiohttp.ClientError as e:
                 logger.error(f"HTTP error occurred: {e}")
                 await send_msg(msg_type, number, f"HTTP 错误: {e}")
-        except asyncio.TimeoutError:
-            logger.error("Request timed out after retries")
-            await send_msg(msg_type, number, "请求超时，请稍后再试。")
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP error occurred: {e}")
-            await send_msg(msg_type, number, f"HTTP 错误: {e}")
+
+        await asyncio.sleep(0.3)  # 添加短暂延迟，避免消息发送过快
 
 def get_dialogue_response(user_input):
     for dialogue in config.DIALOGUES:
         if dialogue["user"] == user_input:
             return dialogue["assistant"]
     return None
+
+def should_include_lunar(user_input):
+    lunar_keywords = ["农历", "阴历", "节日", "生肖", "春节", "元宵", "端午", "中秋", "重阳"]
+    return any(keyword in user_input for keyword in lunar_keywords)
+
+def should_include_festival(user_input):
+    festival_keywords = ["元旦", "情人节", "妇女节", "愚人节", "劳动节", "儿童节", "国庆节", "圣诞节"]
+    return any(keyword in user_input for keyword in festival_keywords)
 
 def process_chat_message(msg_type):
     def decorator(func):
@@ -108,6 +123,30 @@ def process_chat_message(msg_type):
                 if modified_input is not None:
                     user_input = modified_input
 
+                # 检查是否需要包含农历信息和节日信息
+                include_lunar = should_include_lunar(user_input)
+                include_festival = should_include_festival(user_input)
+
+                # 获取时间信息
+                time_info = get_current_time()
+                if include_lunar:
+                    lunar_info = get_lunar_date_info()
+                    time_info.update(lunar_info)
+
+                # 构建时间信息字符串
+                time_str = (f"今天是：{time_info['full_time']}，{time_info['weekday']}，"
+                            f"现在是{time_info['period']}，具体时间是{time_info['hour']}点{time_info['minute']}分。")
+                
+                if include_lunar:
+                    time_str += f"\n农历：{time_info['lunar_date']}，生肖：{time_info['zodiac']}"
+                    if time_info['festival']:
+                        time_str += f"，今天是{time_info['festival']}"
+                
+                if include_festival and time_info['solar_festival']:
+                    time_str += f"\n今天是{time_info['solar_festival']}"
+                elif include_festival:
+                    time_str += "\n今天没有特殊的公历节日"
+
                 # 检测命令
                 full_command = await handle_command_request(user_input)
                 if full_command:
@@ -121,14 +160,34 @@ def process_chat_message(msg_type):
                     db.insert_chat_message(user_id, user_input, special_response, context_type, context_id)
                     return
 
+                # 获取最近的10条消息
                 recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
+
+                # 检查最近消息中是否包含当前用户的消息
+                user_in_recent = any(msg['role'] == 'user' and msg['content'].startswith(f"{username}:") for msg in recent_messages)
+                
+                if not user_in_recent:
+                    # 如果最近消息中没有当前用户的消息，获取用户的历史消息
+                    user_historical = db.get_user_historical_messages(user_id=user_id, context_type=context_type, context_id=context_id, limit=3)
+                    
+                    # 将用户的历史消息插入到最近消息的适当位置
+                    insert_index = len(recent_messages) // 2  # 插入到中间位置
+                    recent_messages = recent_messages[:insert_index] + user_historical + recent_messages[insert_index:]
+                    
+                    # 如果插入后消息数量超过10轮，裁剪掉最早的消息
+                    if len(recent_messages) > 20:  # 10轮对话是20条消息（每轮包含用户输入和机器人回复）
+                        recent_messages = recent_messages[-20:]
+
                 system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
                 if user_id == config.ADMIN_ID:
                     admin_title = random.choice(config.ADMIN_TITLES)
-                    user_input = f"{admin_title}: {user_input}"
+                    user_input = "[impression]这是老爹说的话："f"{admin_title}: {user_input}"
                 else:
-                    user_input = f"{username}: {user_input}"
-                messages = [{"role": "system", "content": system_message_text}] + recent_messages + [{"role": "user", "content": user_input}]
+                    user_input = "(这不是老爹说的话)"f"{username}: {user_input}"
+                messages = [
+                    {"role": "system", "content": system_message_text},
+                    {"role": "system", "content": time_str}
+                ] + recent_messages + [{"role": "user", "content": user_input}]
 
                 response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
                 if response_text is None:
@@ -145,7 +204,12 @@ def process_chat_message(msg_type):
                 else:
                     response_with_username = f"{username}，{response_text}"
 
-                await send_msg(msg_type, recipient_id, response_with_username)
+                # 使用消息截断器发送最终响应
+                response_parts = split_message(response_with_username)
+                for part in response_parts:
+                    await send_msg(msg_type, recipient_id, part)
+                    await asyncio.sleep(0.3)
+
             except Exception as e:
                 logger.error(f"Error in process_chat_message: {e}")
                 await send_msg(msg_type, recipient_id, "阿巴阿巴，出错了。")
@@ -173,7 +237,6 @@ async def handle_special_requests(user_input):
     if recognition_result:
         return f"识别结果：{recognition_result}"
 
-    return None
 
 def is_chinese(char):
     """检查一个字符是否是中文"""
@@ -237,6 +300,29 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
             logger.error(f"Error during image generation: {e}")
             await send_msg(msg_type, recipient_id, "图片生成过程中出现错误，请稍后再试。")
         return
+    
+    elif process_special and '#search' in response_text:
+        logger.info("Search request detected")
+        search_pattern = re.compile(r"#search\s*([^.!?。！？\n]+[.!?。！？]?)")
+        search_match = search_pattern.search(response_text)
+        if search_match:
+            search_query = search_match.group(1).strip()
+            logger.info(f"Search query: {search_query}")
+            try:
+                await send_msg(msg_type, recipient_id, f"正在搜索：{search_query}")
+                search_result = await web_search(search_query)
+                if search_result:
+                    result_parts = split_message(search_result)
+                    for part in result_parts:
+                        await send_msg(msg_type, recipient_id, f"搜索结果：\n{part}")
+                        await asyncio.sleep(0.5)
+                    db.insert_chat_message(user_id, user_input, f"搜索结果：{search_result}", context_type, context_id)
+                else:
+                    await send_msg(msg_type, recipient_id, "抱歉，搜索没有返回结果。")
+            except Exception as e:
+                logger.error(f"Error during web search: {e}")
+                await send_msg(msg_type, recipient_id, "搜索过程中出现错误，请稍后再试。")
+            return
 
 @process_chat_message('private')
 async def process_private_message(rev):
