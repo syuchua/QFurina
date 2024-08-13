@@ -216,7 +216,16 @@ python main.py
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
   - [x] 新增图片识别功能，需要模型为`GPT4`系列或在`model.json`里设置`vision`为`true`
 
+### 视频教程
+【芙宁娜QQ机器人搭建教程(可能已经有点旧了)】 https://www.bilibili.com/video/BV1BBYcekEUs/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca
+<iframe src="//player.bilibili.com/player.html?bvid=BV1BBYcekEUs&p=1&poster=1&danmaku=0&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+### 获取bing的cookie用于非gpt系列的AI绘图
+[如果视频无法渲染可以点击链接下载](https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4)
+<video src="https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4"></video>
 
+### 一些跟芙芙聊天的日常
+【谁家傻芙芙连9.8和9.11哪个大都分不清】 https://www.bilibili.com/video/BV1TivWeFEot/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca
+<iframe src="//player.bilibili.com/player.html?bvid=BV1TivWeFEot&p=1&poster=1&danmaku=0&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
 ## 贡献
 
