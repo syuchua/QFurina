@@ -106,8 +106,8 @@
   ### 一个api中转站点(如果有需求的话可以看看，支持各种主流模型)
   [点我跳转](https://ngedlktfticp.cloud.sealos.io/register?aff=DEAp)
   
-  ### 个人搭建的claude-3.5sonnet中转站：
-  [claude3.5中转](https://gcp.yuchu.me)
+  ### 个人搭建的中转站，包含Claude，Gemini系列，gpt4o-mini等：
+  [点我前往](https://gcp.yuchu.me)
 
   ### 配置Llonebot: 如图
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240615234833.png)
