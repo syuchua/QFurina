@@ -219,7 +219,6 @@ python main.py
 ### 视频教程
 [芙宁娜QQ机器人搭建教程(可能已经有点旧了)](https://www.bilibili.com/video/BV1BBYcekEUs/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca)
 
-<iframe src="//player.bilibili.com/player.html?bvid=BV1BBYcekEUs&p=1&poster=1&danmaku=0&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
 ### 获取bing的cookie用于非gpt系列的AI绘图
 [如果视频无法渲染可以点击链接下载](https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4)
@@ -229,7 +228,6 @@ python main.py
 ### 一些跟芙芙聊天的日常
 [谁家傻芙芙连9.8和9.11哪个大都分不清](https://www.bilibili.com/video/BV1TivWeFEot/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca)
 
-<iframe src="//player.bilibili.com/player.html?bvid=BV1TivWeFEot&p=1&poster=1&danmaku=0&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
 ## 贡献
 
