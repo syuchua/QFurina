@@ -1,24 +1,39 @@
 # * - message.py - *
 from functools import wraps
 from app.logger import logger
-import re
-import time
-import aiohttp
-import random
-import asyncio
+import re, random, time, asyncio, aiohttp
 from app.config import Config
 from app.command import handle_command
 from app.decorators import select_connection_method
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
-from app.function_calling import get_current_time, get_lunar_date_info, handle_command_request, handle_image_recognition, handle_image_request, handle_music_request, handle_voice_request, web_search
+from app.function_calling import handle_command_request, handle_image_recognition, handle_image_request, handle_music_request, handle_voice_request, handle_web_search
 from app.database import MongoDB
 from app.split_message import split_message
-
+from utils.current_time import get_current_time, get_lunar_date_info
 config = Config.get_instance()
 
 # 添加数据库连接实例
 db = MongoDB()
+
+
+# 实现基本的消息限速
+class RateLimiter:
+    def __init__(self, max_calls, period):
+        self.max_calls = max_calls
+        self.period = period
+        self.calls = []
+
+    async def wait(self):
+        now = time.time()
+        self.calls = [call for call in self.calls if call > now - self.period]
+        if len(self.calls) >= self.max_calls:
+            sleep_time = self.calls[0] - (now - self.period)
+            await asyncio.sleep(sleep_time)
+        self.calls.append(time.time())
+
+# 创建一个限速器实例，例如每分钟最多发送20条消息
+limiter = RateLimiter(max_calls=20, period=60)
 
 # 超时重试装饰器
 def retry_on_timeout(retries=1, timeout=10):
@@ -44,6 +59,7 @@ async def send_http_request(url, json):
 
 @select_connection_method
 async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=False):
+    await limiter.wait()  # 使用限速器
     if use_voice:
         try:
             audio_filename = await generate_voice(msg)
@@ -52,40 +68,36 @@ async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=Fals
         except asyncio.TimeoutError:
             msg = "语音合成超时，请稍后再试。"
 
-    # 使用消息截断器
-    message_parts = split_message(msg)
-    for part in message_parts:
-        params = {
-            'message': part,
-            **({'group_id': number} if msg_type == 'group' else {'user_id': number})
-        }
-        if config.CONNECTION_TYPE == 'http':
-            url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
-            try:
-                response = await send_http_request(url, params)
-                if 'status' in response and response['status'] == 'failed':
-                    error_msg = response.get('message', response.get('wording', 'Unknown error'))
-                    logger.error(f"Failed to send {msg_type} message: {error_msg}")
-                    if not is_error_message:
-                        await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
-                else:
-                    logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
-                    logger.debug(f"API response: {response}")
-            except aiohttp.ClientResponseError as e:
-                if e.status == 404:
-                    logger.error(f"Resource not found: {e}")
-                    await send_msg(msg_type, number, "资源未找到 (404 错误)。")
-                else:
-                    logger.error(f"HTTP error occurred: {e}")
-                    await send_msg(msg_type, number, f"HTTP 错误: {e}")
-            except asyncio.TimeoutError:
-                logger.error("Request timed out after retries")
-                await send_msg(msg_type, number, "请求超时，请稍后再试。")
-            except aiohttp.ClientError as e:
+    params = {
+        'message': msg,
+        **({'group_id': number} if msg_type == 'group' else {'user_id': number})
+    }
+    if config.CONNECTION_TYPE == 'http':
+        url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
+        try:
+            response = await send_http_request(url, params)
+            if 'status' in response and response['status'] == 'failed':
+                error_msg = response.get('message', response.get('wording', 'Unknown error'))
+                logger.error(f"Failed to send {msg_type} message: {error_msg}")
+                if not is_error_message:
+                    await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
+            else:
+                logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
+                logger.debug(f"API response: {response}")
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                logger.error(f"Resource not found: {e}")
+                await send_msg(msg_type, number, "资源未找到 (404 错误)。", is_error_message=True)
+            else:
                 logger.error(f"HTTP error occurred: {e}")
-                await send_msg(msg_type, number, f"HTTP 错误: {e}")
+                await send_msg(msg_type, number, f"HTTP 错误: {e}", is_error_message=True)
+        except asyncio.TimeoutError:
+            logger.error("Request timed out after retries")
+            await send_msg(msg_type, number, "请求超时，请稍后再试。", is_error_message=True)
+        except aiohttp.ClientError as e:
+            logger.error(f"HTTP error occurred: {e}")
+            await send_msg(msg_type, number, f"HTTP 错误: {e}", is_error_message=True)
 
-        await asyncio.sleep(0.3)  # 添加短暂延迟，避免消息发送过快
 
 def get_dialogue_response(user_input):
     for dialogue in config.DIALOGUES:
@@ -205,10 +217,13 @@ def process_chat_message(msg_type):
                     response_with_username = f"{username}，{response_text}"
 
                 # 使用消息截断器发送最终响应
-                response_parts = split_message(response_with_username)
-                for part in response_parts:
-                    await send_msg(msg_type, recipient_id, part)
-                    await asyncio.sleep(0.3)
+                # response_parts = split_message(response_with_username)
+                # for part in response_parts:
+                #     await send_msg(msg_type, recipient_id, part)
+                #     await asyncio.sleep(0.3)
+
+                # 直接发送完整消息，不使用消息截断器
+                await send_msg(msg_type, recipient_id, response_with_username)
 
             except Exception as e:
                 logger.error(f"Error in process_chat_message: {e}")
@@ -303,20 +318,36 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
     
     elif process_special and '#search' in response_text:
         logger.info("Search request detected")
-        search_pattern = re.compile(r"#search\s*([^.!?。！？\n]+[.!?。！？]?)")
+        search_pattern = re.compile(r"#search\s*(.*)")  # 修改正则表达式以捕获整个URL
         search_match = search_pattern.search(response_text)
         if search_match:
             search_query = search_match.group(1).strip()
             logger.info(f"Search query: {search_query}")
             try:
                 await send_msg(msg_type, recipient_id, f"正在搜索：{search_query}")
-                search_result = await web_search(search_query)
+                search_result = await handle_web_search(search_query)
+                logger.info(f"Raw search result: {search_result}")  # 记录完整的搜索结果
                 if search_result:
-                    result_parts = split_message(search_result)
-                    for part in result_parts:
-                        await send_msg(msg_type, recipient_id, f"搜索结果：\n{part}")
-                        await asyncio.sleep(0.5)
-                    db.insert_chat_message(user_id, user_input, f"搜索结果：{search_result}", context_type, context_id)
+                    if search_query.startswith("https://github.com/"):
+                        # 对于 GitHub 仓库，分两部分发送
+                        result_preview = search_result[:200] if len(search_result) > 200 else search_result
+                        await send_msg(msg_type, recipient_id, f"Search result: {result_preview}...")
+                        
+                        # 查找 "#search" 的位置，从这里开始发送剩余部分
+                        remaining_start = search_result.find("#search")
+                        if remaining_start != -1:
+                            remaining_text = search_result[remaining_start:]
+                            await send_msg(msg_type, recipient_id, remaining_text)
+                        
+                    else:
+                        # 对于其他搜索结果，使用消息截断器
+                        result_parts = split_message(search_result, max_length=1000)
+                        for part in result_parts:
+                            await send_msg(msg_type, recipient_id, part)
+                            await asyncio.sleep(0.5)
+                    
+                    # 将完整的搜索结果保存到数据库
+                    db.insert_chat_message(user_id, user_input, search_result, context_type, context_id)
                 else:
                     await send_msg(msg_type, recipient_id, "抱歉，搜索没有返回结果。")
             except Exception as e:
@@ -340,10 +371,12 @@ async def process_group_message(rev):
     block_id = config.BLOCK_ID
     contains_nickname = any(nickname in user_input for nickname in config.NICKNAMES)
     is_sender_blocked = user_id in block_id
-    at_bot_message = r'\[CQ:at,qq={}\]'.format(config.SELF_ID)
+    # 更新 at_bot_message 正则表达式以匹配新格式
+    at_bot_message = r'\[CQ:at,qq={},name=[^\]]+\]'.format(config.SELF_ID)
     is_at_bot = re.search(at_bot_message, user_input)
 
-    if re.search(at_bot_message, user_input):
+    if is_at_bot:
+        # 移除 @ 消息，包括可能的名字部分
         user_input = re.sub(at_bot_message, '', user_input).strip()
         return user_input  # 返回修改后的 user_input
 

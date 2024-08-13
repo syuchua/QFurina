@@ -22,7 +22,13 @@ class ModelClient:
         async with aiohttp.ClientSession() as session:
             async with session.post(f"{self.base_url}/{endpoint}", json=payload, headers=headers, timeout=self.timeout) as response:
                 response.raise_for_status()
-                return await response.json()
+                content_type = response.headers.get('Content-Type', '')
+                if 'application/json' in content_type:
+                    return await response.json()
+                elif 'text/plain' in content_type:
+                    return await response.text()
+                else:
+                    raise ValueError(f"Unexpected content type: {content_type}")
 
 class OpenAIClient(ModelClient):
     async def chat_completion(self, model, messages, **kwargs):
