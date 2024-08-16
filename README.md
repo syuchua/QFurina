@@ -109,8 +109,8 @@
   ### 一个api中转站点(如果有需求的话可以看看，支持各种主流模型)
   [点我跳转](https://ngedlktfticp.cloud.sealos.io/register?aff=DEAp)
   
-  ### 个人搭建的claude-3.5sonnet中转站：
-  [claude3.5中转](https://gcp.yuchu.me)
+  ### 个人搭建的中转站，包含Claude，Gemini系列，gpt4o-mini等：
+  [点我前往](https://gcp.yuchu.me)
 
   ### 配置Llonebot: 如图
   ![](https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240615234833.png)
@@ -223,6 +223,17 @@ python main.py
   - [x] 新增联网搜索和读取链接功能，且对GitHub链接读取做了优化
   - [x] 新增天气查询功能，需先前往[高德开放平台](https://console.amap.com/dev/key/app)获取密钥(选择web API即可)
 
+### 视频教程
+[芙宁娜QQ机器人搭建教程(可能已经有点旧了)](https://www.bilibili.com/video/BV1BBYcekEUs/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca)
+
+
+### 获取bing的cookie用于非gpt系列的AI绘图
+[如果视频无法渲染可以点击链接下载](https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4)
+
+<video src="https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4"></video>
+
+### 一些跟芙芙聊天的日常
+[谁家傻芙芙连9.8和9.11哪个大都分不清](https://www.bilibili.com/video/BV1TivWeFEot/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca)
 
 
 ## 贡献
