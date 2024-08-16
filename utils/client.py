@@ -134,4 +134,4 @@ async def recognize_image(cq_code):
         raise Exception(f"Error during image recognition: {e}")
     
 default_config, model_config = load_config()
-client = get_client(default_config, model_config)
+client, supports_image_recognition = get_client(default_config, model_config)
