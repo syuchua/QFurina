@@ -100,9 +100,9 @@ def schedule_jobs():
     exempt_groups = []
 
     # 定时开关机
-    schedule.every().day.at(config.DISABLE_TIME).do(shutdown_gracefully)
-    schedule.every().day.at(config.ENABLE_TIME).do(restart_main_loop)
-
+    schedule.every().day.at(config.DISABLE_TIME).do(asyncio.run, shutdown_gracefully())
+    schedule.every().day.at(config.ENABLE_TIME).do(asyncio.run, restart_main_loop())
+    
     # 定时清理任务
     schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
     schedule.every().day.at("03:00").do(clean_old_logs, days=14)
@@ -136,33 +136,24 @@ async def task():
     await task_manager.start()
 
     try:
+        tasks = [session_timeout_check()]
         if config.CONNECTION_TYPE == 'http':
-            http_server_task = asyncio.create_task(start_http_server())
+            tasks.append(start_http_server())
         elif config.CONNECTION_TYPE == 'ws_reverse':
-            ws_server_task = asyncio.create_task(start_reverse_ws())
+            tasks.append(start_reverse_ws())
 
-        timeout_check_task = asyncio.create_task(session_timeout_check())
-
-        # 在循环外判断连接状态
         if BOT_ACTIVE.is_set():
-            asyncio.create_task(message_loop())
+            tasks.append(message_loop())
 
-        # 保持主循环运行
-        while not shutdown_event.is_set():
-            await asyncio.sleep(1)
+        await asyncio.gather(*tasks)
 
     except asyncio.CancelledError:
         logger.info("主任务被取消")
     finally:
         shutdown_event.set()
-        if config.CONNECTION_TYPE == 'http':
-            http_server_task.cancel()
-        elif config.CONNECTION_TYPE == 'ws_reverse':
-            ws_server_task.cancel()
-        timeout_check_task.cancel()
-        await close_connection()  # 确保关闭连接
+        await close_connection()
         flask_server.shutdown()
-        thread_pool.shutdown(wait=False)  # 关闭线程池
+        thread_pool.shutdown(wait=False)
         logger.info("程序关闭完成")
 
 def shutdown_handler(sig, frame):
