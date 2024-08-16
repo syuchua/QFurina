@@ -27,7 +27,7 @@ class CookieManager:
                 cookies = json.load(f)
             if isinstance(cookies, dict):  # 如果是单个 cookie
                 cookies = [cookies]  # 将其转换为列表
-            logger.info(f"Loaded {len(cookies)} cookies from {self.cookie_file}")
+            logger.debug(f"Loaded {len(cookies)} cookies from {self.cookie_file}")
             return cookies
         except FileNotFoundError:
             logger.warning(f"Cookie file not found: {self.cookie_file}")
@@ -159,7 +159,5 @@ class BingArt:
             print(f"Unexpected error: {e}")
             raise
     
-
-# 初始化
 cookie_manager = CookieManager('cookies.json')
 bing_art = BingArt(cookie_manager)

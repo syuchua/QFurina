@@ -5,7 +5,8 @@ from commands.music_list import handle_music_list_command
 from commands.reset import handle_reset_command
 from commands.character import handle_character_command
 from commands.model import handle_model_command
-from commands.r18 import handle_r18_command  
+from commands.r18 import handle_r18_command
+from commands.switch import handle_switch_command  
 
 async def handle_command(command, msg_type, recipient_id, send_msg, context_type, context_id):
     parts = command.split(' ', 1)
@@ -19,7 +20,11 @@ async def handle_command(command, msg_type, recipient_id, send_msg, context_type
     elif main_command == 'character':
         await handle_character_command(msg_type, recipient_id, send_msg)
     elif main_command == 'music_list':
-        await handle_music_list_command(msg_type, recipient_id, send_msg) 
+        await handle_music_list_command(msg_type, recipient_id, send_msg)
+    elif main_command == 'shutdown':
+        await handle_switch_command(msg_type, recipient_id, 'shutdown', send_msg)
+    elif main_command == 'restart':
+        await handle_switch_command(msg_type, recipient_id, 'restart', send_msg)
     elif main_command == 'history':
         count = None
         if args:

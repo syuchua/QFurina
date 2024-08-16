@@ -9,6 +9,9 @@
   4. 指定关键词发送或者随机涩图
   5. AI绘画
   6. AI生成语音
+  7. 天气查询
+  8. 联网搜索
+  9. 定时开关机
 
 ## 当前支持的消息平台：
 目前仅在Windows端Llonebot上测试过，理论上所有支持oneonev11协议的消息平台都可以用，不过http对接配置可能要麻烦一点
@@ -202,6 +205,8 @@ python main.py
 - `/music_list`: 获取歌曲列表
 - `/r18 [0, 1, 2]`切换涩图接口r18模式，0为关闭，1为开启，2随机
 - `/model [new_model]`切换模型，新模型需先在model.json中配置好。
+- `/shutdown`睡眠。
+- `/restart`解除睡眠。
 
 ## TODO
   - [x] 基本的消息接收和发送功能
@@ -215,6 +220,8 @@ python main.py
   - [x] 接入语音接口 #本地搭建参考b站箱庭xter的视频： https://b23.tv/9dOdMo6
   - [x] 接入其他大模型 #理论上只要符合openai api格式都可以，不过目前只涵盖了gemini,claude和kimi,其他的可以仿照`config/model.json`里的`models`配置自己写，记得下方model的值要在上方的`available_models`里。
   - [x] 新增图片识别功能，需要模型为`GPT4`系列或在`model.json`里设置`vision`为`true`
+  - [x] 新增联网搜索和读取链接功能，且对GitHub链接读取做了优化
+  - [x] 新增天气查询功能，需先前往[高德开放平台](https://console.amap.com/dev/key/app)获取密钥(选择web API即可)
 
 
 

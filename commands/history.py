@@ -6,7 +6,7 @@ db = MongoDB()
 DEFAULT_HISTORY_COUNT = 10
 MAX_HISTORY_COUNT = 50
 DEFAULT_CLEAR_COUNT = 10
-MAX_CLEAR_COUNT = 50
+MAX_CLEAR_COUNT = 500
 
 async def handle_history_command(msg_type, recipient_id, context_type, context_id, send_msg, count=None):
     try:
