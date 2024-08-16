@@ -1,19 +1,19 @@
 # function_calling.py
-import os
-import random
+import os, re, random
+from utils.city_codes import CITY_CODES
 from utils.search import get_github_repo_info, get_webpage_content, web_search
-from utils.BingArt import bing_art
+from utils.BingArt import BingArt, CookieManager
 from app.logger import logger
-import re
 from utils.voice_service import generate_voice
-from utils.common import model_config, default_config, get_client, generate_image, recognize_image
+from utils.client import client, generate_image, recognize_image, model_config
 from utils.lolicon import fetch_image
+from utils.weather import get_forecast, get_weather
+from rapidfuzz import process, fuzz
+from utils.BingArt import bing_art
 
 MUSIC_DIRECTORY = 'data/music'
 MUSIC_FILES = [f for f in os.listdir(MUSIC_DIRECTORY) if f.endswith(('.mp3', '.wav'))]
 MUSIC_INFO = {os.path.splitext(f)[0]: f for f in MUSIC_FILES}
-
-client = get_client(default_config, model_config)
 
 
 async def call_function(model_name, endpoint, payload):
@@ -25,7 +25,7 @@ async def call_function(model_name, endpoint, payload):
         return None
 
 async def handle_command_request(user_input):
-    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list)(?:\s+(.+))?')
+    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown)(?:\s+(.+))?')
     match = COMMAND_PATTERN.match(user_input)
     if match:
         command = match.group(1)
@@ -164,3 +164,73 @@ async def handle_web_search(query):
         enhanced_result += f"\n链接: {url}\n内容摘要: {content}\n"
 
     return enhanced_result
+
+async def handle_weather_request(user_input):
+    WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报', '未来', '明天', '后天']
+    
+    logger.debug(f"Handling weather request: {user_input}")
+    
+    if any(keyword in user_input for keyword in WEATHER_KEYWORDS):
+        city = extract_city(user_input)
+        logger.debug(f"Extracted city: {city}")
+        
+        if not city:
+            logger.info("No city extracted from user input")
+            return "抱歉，我没有识别出您想查询的城市。请直接提供城市名，例如'北京天气'。"
+
+        try:
+            logger.debug(f"Fetching current weather for {city}")
+            current_weather = await get_weather(city)
+            logger.debug(f"Current weather result: {current_weather}")
+            
+            logger.debug(f"Fetching forecast for {city}")
+            forecast = await get_forecast(city)
+            logger.debug(f"Forecast result: {forecast}")
+            
+            weather_response = f"{current_weather}\n\n{forecast}"
+            
+            logger.debug(f"Final weather response: {weather_response}")
+            return weather_response
+        except Exception as e:
+            logger.error(f"Error in handle_weather_request: {e}", exc_info=True)
+            return f"获取{city}的天气信息时发生错误，请稍后再试。"
+
+    logger.info("Not a weather request")
+    return None  # 如果不是天气请求，返回 None
+
+
+
+
+def extract_city(text):
+    WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报', '未来', '明天', '后天']
+    
+    logger.debug(f"Extracting city from: {text}")
+    
+    # 去除常见的无关词
+    for keyword in WEATHER_KEYWORDS:
+        text = text.replace(keyword, '')
+    
+    logger.debug(f"Text after removing keywords: {text}")
+    
+    try:
+        # 使用模糊匹配找到最可能的城市名
+        result = process.extractOne(text, CITY_CODES.keys(), scorer=fuzz.partial_ratio)
+        
+        logger.debug(f"Fuzzy matching result: {result}")
+        
+        if result and len(result) >= 2:
+            city, score = result[0], result[1]
+            logger.debug(f"Extracted city: {city}, match score: {score}")
+            
+            # 如果匹配度低于某个阈值，认为没有找到有效的城市名
+            if score < 60:
+                logger.info(f"No valid city name found. Best match was '{city}' with score {score}")
+                return None
+            
+            return city
+        else:
+            logger.info("No city match found")
+            return None
+    except Exception as e:
+        logger.error(f"Error in extract_city: {e}", exc_info=True)
+        return None

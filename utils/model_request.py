@@ -2,10 +2,14 @@
 import json
 from app.logger import logger
 import aiohttp
-from utils.common import model_config, default_config, client
+from utils.client import get_client, model_config, default_config
+
+# 获取 client 对象
+client, _ = get_client(default_config, model_config)
 
 # 从配置文件中读取默认配置和模型配置
 async def get_chat_response(messages):
+    # 读取系统消息
     system_message = model_config.get('system_message', {}).get('character', '') or default_config.get('system_message', {}).get('character', '')
 
     if system_message:

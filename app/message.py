@@ -7,7 +7,7 @@ from app.command import handle_command
 from app.decorators import select_connection_method
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
-from app.function_calling import handle_command_request, handle_image_recognition, handle_image_request, handle_music_request, handle_voice_request, handle_web_search
+from app.function_calling import handle_command_request, handle_image_recognition, handle_image_request, handle_music_request, handle_voice_request, handle_weather_request, handle_web_search
 from app.database import MongoDB
 from app.split_message import split_message
 from utils.current_time import get_current_time, get_lunar_date_info
@@ -32,8 +32,8 @@ class RateLimiter:
             await asyncio.sleep(sleep_time)
         self.calls.append(time.time())
 
-# 创建一个限速器实例，例如每分钟最多发送20条消息
-limiter = RateLimiter(max_calls=20, period=60)
+# 创建一个限速器实例，例如每分钟最多发送10条消息
+limiter = RateLimiter(max_calls=10, period=60)
 
 # 超时重试装饰器
 def retry_on_timeout(retries=1, timeout=10):
@@ -195,7 +195,7 @@ def process_chat_message(msg_type):
                     admin_title = random.choice(config.ADMIN_TITLES)
                     user_input = "[impression]这是老爹说的话："f"{admin_title}: {user_input}"
                 else:
-                    user_input = "(这不是老爹说的话)"f"{username}: {user_input}"
+                    user_input = "[impression]这不是老爹说的话:"f"{username}: {user_input}"
                 messages = [
                     {"role": "system", "content": system_message_text},
                     {"role": "system", "content": time_str}
@@ -209,6 +209,7 @@ def process_chat_message(msg_type):
                     db.insert_chat_message(user_id, user_input, response_text, context_type, context_id)
                     # 添加一个参数来指示是否处理特殊响应
                     process_special = not user_input.startswith(('!history', '/history', '#history'))
+                    #logger.info(f"Processing special responses: {process_special}")
                     await process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, process_special=process_special)
 
                 if user_id == config.ADMIN_ID:                    
@@ -233,21 +234,25 @@ def process_chat_message(msg_type):
     return decorator
 
 async def handle_special_requests(user_input):
+    # 处理图片请求
     image_url = await handle_image_request(user_input)
     if image_url:
         return f"[CQ:image,file={image_url}]"
 
+    # 处理语音请求
     voice_url = await handle_voice_request(user_input)
     if voice_url:
         return f"[CQ:record,file={voice_url}]"
     
+    # 处理音乐请求
     music_response = await handle_music_request(user_input)
     if music_response:
         if music_response.startswith("http"):
             return f"[CQ:record,file={music_response}]"
         else:
             return music_response  # 返回错误消息
-        
+
+    # 处理图片识别请求   
     recognition_result = await handle_image_recognition(user_input)
     if recognition_result:
         return f"识别结果：{recognition_result}"
@@ -258,6 +263,29 @@ def is_chinese(char):
     return '\u4e00' <= char <= '\u9fff'
 
 async def process_special_responses(response_text, msg_type, recipient_id, user_id, user_input, context_type, context_id, process_special=True):
+    if not process_special:
+        return False
+    
+    WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报', '未来', '明天', '后天']
+
+    if any(keyword in user_input for keyword in WEATHER_KEYWORDS):
+        logger.info("Weather request detected")
+        try:
+            weather_response = await handle_weather_request(user_input)
+            logger.debug(f"Weather response type: {type(weather_response)}, content: {weather_response}")
+            if weather_response:
+                await send_msg(msg_type, recipient_id, weather_response)
+                db.insert_chat_message(user_id, user_input, weather_response, context_type, context_id)
+            else:
+                await send_msg(msg_type, recipient_id, "抱歉，无法获取天气信息。")
+            return True
+        except Exception as e:
+            logger.error(f"Error in weather request handling: {e}", exc_info=True)
+            await send_msg(msg_type, recipient_id, "获取天气信息时发生错误，请稍后再试。")
+            return True
+
+
+
     if process_special and '#voice' in response_text:
         logger.info("Voice request detected")
         voice_pattern = re.compile(r"#voice\s*(.*)", re.DOTALL)
@@ -330,7 +358,7 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
                 if search_result:
                     if search_query.startswith("https://github.com/"):
                         # 对于 GitHub 仓库，分两部分发送
-                        result_preview = search_result[:200] if len(search_result) > 200 else search_result
+                        result_preview = search_result[:500] if len(search_result) > 500 else search_result
                         await send_msg(msg_type, recipient_id, f"Search result: {result_preview}...")
                         
                         # 查找 "#search" 的位置，从这里开始发送剩余部分
@@ -375,15 +403,19 @@ async def process_group_message(rev):
     at_bot_message = r'\[CQ:at,qq={},name=[^\]]+\]'.format(config.SELF_ID)
     is_at_bot = re.search(at_bot_message, user_input)
 
+    # 检查是否是重启命令
+    is_restart_command = user_input.strip().lower() == '/restart'
+
     if is_at_bot:
         # 移除 @ 消息，包括可能的名字部分
         user_input = re.sub(at_bot_message, '', user_input).strip()
         return user_input  # 返回修改后的 user_input
 
-    if (contains_nickname or is_at_bot) and not is_sender_blocked:
+    if (contains_nickname or is_at_bot or is_restart_command) and not is_sender_blocked:
         return user_input  # 返回原始 user_input
 
     if random.random() <= config.REPLY_PROBABILITY and not is_sender_blocked:
         return user_input  # 随机回复的情况
 
     return None  # 明确表示不需要回复
+
