@@ -1,5 +1,5 @@
 aiofiles==24.1.0
-aiohttp==3.9.5
+aiohttp
 beautifulsoup4==4.12.3
 browser_cookie3==0.19.1
 Flask==3.0.3
