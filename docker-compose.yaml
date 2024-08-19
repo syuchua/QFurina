@@ -7,8 +7,8 @@ services:
       - "3001:3001"  # HTTP
       - "8011:8011"  # WebSocket
     volumes:
-      - ./config:/app/config  # 确保配置文件被正确挂载
-      - ./data:/app/data  # 如果需要持久化数据
+      - ./config:/app/config
+      - ./data:/app/data
     environment:
       - MONGO_URI=mongodb://mongo:27017/chatbot_db
       - CONNECTION_TYPE=ws_reverse  # 设置连接类型为 WebSocket
@@ -27,4 +27,3 @@ services:
 
 volumes:
   mongo_data:
-

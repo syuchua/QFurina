@@ -2,7 +2,7 @@ import json
 from loguru import logger
 import asyncio
 import re
-from app.database import MongoDB
+from app.database import db
 from app.config import Config
 from app.driver import close, start_reverse_ws_server, call_api
 
@@ -24,25 +24,28 @@ def request_to_json(msg):
 
 # 用于接收消息的队列
 message_queue = asyncio.Queue(maxsize=config.MESSAGE_QUEUE_SIZE)
-db = MongoDB()
 
 # 捕获并处理优先级命令
 async def handle_priority_command(rev_json):
-    command_pattern = re.compile(r'^[!/#](reset|character|clear)(?:\s+(.+))?')
-    user_input = rev_json.get('raw_message')
-    match = command_pattern.match(user_input)
-    if match:
-        logger.info(f"Detected priority command: {user_input}")
-        queue_with_priority = asyncio.Queue()
-        queue_with_priority.put_nowait(rev_json)  # 将优先级命令放入新队列的最前端
-        while not message_queue.empty():
-            msg = message_queue.get_nowait()
-            queue_with_priority.put_nowait(msg)
-        while not queue_with_priority.empty():
-            msg = queue_with_priority.get_nowait()
-            await message_queue.put(msg)
-        return True
-    return False
+    try:
+        command_pattern = re.compile(r'^[!/#](reset|character|clear)(?:\s+(.+))?')
+        user_input = rev_json.get('raw_message')
+        match = command_pattern.match(user_input)
+        if match:
+            logger.info(f"Detected priority command: {user_input}")
+            queue_with_priority = asyncio.Queue()
+            queue_with_priority.put_nowait(rev_json)  # 将优先级命令放入新队列的最前端
+            while not message_queue.empty():
+                msg = message_queue.get_nowait()
+                queue_with_priority.put_nowait(msg)
+            while not queue_with_priority.empty():
+                msg = queue_with_priority.get_nowait()
+                await message_queue.put(msg)
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error handling priority command: {str(e)}")
+        return False
 
 async def handle_message(rev_json):
     if 'post_type' not in rev_json:

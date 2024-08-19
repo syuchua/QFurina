@@ -1,5 +1,11 @@
 # switch.py
+from functools import wraps
+from app.config import Config
+from app.decorators import admin_only
 
+config = Config.get_instance()
+
+@admin_only
 async def handle_switch_command(msg_type, number, new_state, send_msg):
     from utils.boot import shutdown_gracefully, restart_main_loop, BOT_ACTIVE
     if new_state == 'restart':
