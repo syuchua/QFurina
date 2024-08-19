@@ -1,13 +1,12 @@
 # *- boot.py -*
-import time
-import asyncio, threading, os
+import asyncio, threading, os, time, schedule
 from app.task_manger import task_manager
-import schedule
 from app.config import Config
 from app.logger import clean_old_logs, logger
 from app.database import MongoDB
 from app.message import process_group_message, process_private_message
 from commands.reset import session_timeout_check
+from app.decorators import error_handler
 from utils.receive import close_connection, rev_msg, start_http_server, start_reverse_ws
 from concurrent.futures import ThreadPoolExecutor
 from utils.voice_service import clean_voice_directory
@@ -42,6 +41,7 @@ class FlaskServer:
         logger.info("启动 Flask 应用程序...")
         while self.is_running:
             self.server.handle_request() 
+            
 
     def shutdown(self):
         logger.info("关闭 Flask 应用程序...")
@@ -77,7 +77,7 @@ async def process_message(rev_message):
 
 
 
-
+@error_handler
 async def message_loop():
     logger.info("消息处理循环已启动...")
     while not shutdown_event.is_set():
@@ -94,14 +94,15 @@ async def message_loop():
             await asyncio.sleep(1) 
     logger.info("消息处理循环已停止")
 
+
 def schedule_jobs():
     mongo_db = MongoDB()
     exempt_users = [config.ADMIN_ID]
     exempt_groups = []
 
     # 定时开关机
-    schedule.every().day.at(config.DISABLE_TIME).do(shutdown_gracefully)
-    schedule.every().day.at(config.ENABLE_TIME).do(restart_main_loop)
+    schedule.every().day.at(config.DISABLE_TIME).do(asyncio.run, shutdown_gracefully())
+    schedule.every().day.at(config.ENABLE_TIME).do(asyncio.run, restart_main_loop())
 
     # 定时清理任务
     schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
@@ -111,8 +112,11 @@ def schedule_jobs():
     schedule.every(60).minutes.do(clean_voice_directory, directory=voice_directory)
     
     while not shutdown_event.is_set():
-        schedule.run_pending()
-        time.sleep(5)  # 减少睡眠时间，以便更快地响应关闭信号
+        try:
+            schedule.run_pending()
+        except Exception as e:
+            logger.error(f"Error in scheduled job: {e}", exc_info=True)
+        time.sleep(5)
 
 async def shutdown_gracefully():
     """进入睡眠状态"""
@@ -136,33 +140,24 @@ async def task():
     await task_manager.start()
 
     try:
+        tasks = [session_timeout_check()]
         if config.CONNECTION_TYPE == 'http':
-            http_server_task = asyncio.create_task(start_http_server())
+            tasks.append(start_http_server())
         elif config.CONNECTION_TYPE == 'ws_reverse':
-            ws_server_task = asyncio.create_task(start_reverse_ws())
+            tasks.append(start_reverse_ws())
 
-        timeout_check_task = asyncio.create_task(session_timeout_check())
-
-        # 在循环外判断连接状态
         if BOT_ACTIVE.is_set():
-            asyncio.create_task(message_loop())
+            tasks.append(message_loop())
 
-        # 保持主循环运行
-        while not shutdown_event.is_set():
-            await asyncio.sleep(1)
+        await asyncio.gather(*tasks)
 
     except asyncio.CancelledError:
         logger.info("主任务被取消")
     finally:
         shutdown_event.set()
-        if config.CONNECTION_TYPE == 'http':
-            http_server_task.cancel()
-        elif config.CONNECTION_TYPE == 'ws_reverse':
-            ws_server_task.cancel()
-        timeout_check_task.cancel()
-        await close_connection()  # 确保关闭连接
+        await close_connection()
         flask_server.shutdown()
-        thread_pool.shutdown(wait=False)  # 关闭线程池
+        thread_pool.shutdown(wait=False)
         logger.info("程序关闭完成")
 
 def shutdown_handler(sig, frame):

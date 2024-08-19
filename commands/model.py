@@ -2,9 +2,11 @@
 import json
 import os
 from app.config import Config
-
+from app.decorators import admin_only
 config = Config.get_instance()
 
+
+@admin_only
 async def handle_model_command(msg_type, number, new_model, send_msg):
     try:
         # 构建 model.json 的路径

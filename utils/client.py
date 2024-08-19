@@ -1,11 +1,14 @@
 # client.py
 
+from functools import wraps
 from utils.cqimage import get_cq_image_base64
 from app.logger import logger
 import aiohttp, json, os
 from app.config import Config
+from app.decorators import async_timed, error_handler, rate_limit, retry
 
 config = Config.get_instance()
+
 
 class ModelClient:
     def __init__(self, api_key, base_url, timeout=120):
@@ -30,6 +33,9 @@ class ModelClient:
                     raise ValueError(f"Unexpected content type: {content_type}")
 
 class OpenAIClient(ModelClient):
+    @error_handler
+    @retry(max_retries=3, delay=1.0)
+    @rate_limit(calls=10, period=60)
     async def chat_completion(self, model, messages, **kwargs):
         payload = {
             'model': model,
@@ -38,6 +44,8 @@ class OpenAIClient(ModelClient):
         payload.update(kwargs)
         return await self.request('chat/completions', payload)
 
+    @error_handler
+    @async_timed()
     async def image_generation(self, model, prompt, **kwargs):
         payload = {
             'model': model,
@@ -97,6 +105,18 @@ def get_client(default_config, model_config):
 
 
 async def generate_image(prompt):
+    """
+    使用DALL-E 2模型生成图像。
+    
+    参数:
+    prompt (str): 用于生成图像的文本描述。
+    
+    返回:
+    str: 生成图像的URL。
+    
+    异常:
+    Exception: 如果图像生成过程中出现错误。
+    """
     try:
         response = await client.image_generation(
             model="dalle-2",
@@ -107,9 +127,21 @@ async def generate_image(prompt):
         )
         return response['data'][0]['url']
     except Exception as e:
-        raise Exception(f"Error during image generation API request: {e}")
+        raise Exception(f"图像生成API请求过程中出现错误: {e}")
 
 async def recognize_image(cq_code):
+    """
+    识别CQ码中的图像内容。
+    
+    参数:
+    cq_code (str): 包含图像信息的CQ码。
+    
+    返回:
+    str: 图像识别的结果文本。
+    
+    异常:
+    Exception: 如果API不支持图像识别或识别过程中出现错误。
+    """
     # 检查是否支持图像识别
     if not supports_image_recognition:
         raise Exception("API does not support image recognition.")
@@ -134,4 +166,4 @@ async def recognize_image(cq_code):
         raise Exception(f"Error during image recognition: {e}")
     
 default_config, model_config = load_config()
-client = get_client(default_config, model_config)
+client, supports_image_recognition = get_client(default_config, model_config)

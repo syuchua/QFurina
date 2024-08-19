@@ -2,11 +2,12 @@
 import json
 import os
 from app.config import Config
-
+from app.decorators import admin_only
 config = Config.get_instance()
 
 CONFIG_FILE_PATH = 'config/config.json'
 
+@admin_only
 async def handle_r18_command(msg_type, recipient_id, r18_mode, send_msg):
     if r18_mode not in ['0', '1', '2']:
         await send_msg(msg_type, recipient_id, "无效的r18模式。可用模式为：0（关闭），1（开启），2（随机）。")

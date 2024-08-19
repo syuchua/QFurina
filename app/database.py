@@ -311,3 +311,28 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error getting daily message count: {e}")
             return {}
+
+class UserRepository:
+    def __init__(self, db):
+        self.db = db
+
+    async def get_user_info(self, user_id):
+        return await self.db.get_user_info(user_id)
+
+    async def insert_user_info(self, user_info):
+        return await self.db.insert_user_info(user_info)
+
+class MessageRepository:
+    def __init__(self, db):
+        self.db = db
+
+    async def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id):
+        return await self.db.insert_chat_message(user_id, user_input, response_text, context_type, context_id)
+
+    async def get_message_count(self, start_time=None, end_time=None, user_id=None, context_type=None, context_id=None):
+        return await self.db.get_message_count(start_time, end_time, user_id, context_type, context_id)
+
+db = MongoDB()
+# 在其他地方使用这些仓库
+user_repo = UserRepository(db)
+message_repo = MessageRepository(db)

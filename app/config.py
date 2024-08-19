@@ -53,5 +53,14 @@ class Config:
         self.load_config()
         logger.info('Config reloaded')
 
+    def validate_config(self):
+        required_fields = ['API_KEY', 'MODEL', 'ADMIN_ID', 'SELF_ID']
+        for field in required_fields:
+            if not hasattr(self, field) or getattr(self, field) is None:
+                raise ValueError(f"缺少必要的配置项: {field}")
+        
+        if not isinstance(self.REPLY_PROBABILITY, float) or not 0 <= self.REPLY_PROBABILITY <= 1:
+            raise ValueError("REPLY_PROBABILITY 必须是 0 到 1 之间的浮点数")
+
 # 获取配置实例
 config = Config.get_instance()
