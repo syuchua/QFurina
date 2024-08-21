@@ -20,11 +20,11 @@ def clear_message_queue():
     while not message_queue.empty():
         message_queue.get_nowait()
 
-async def handle_reset_command(msg_type, recipient_id, send_msg):
+async def handle_reset_command(msg_type, user_info, send_msg):
     reset_session()
     config.reload_config()
     reset_message = "当前会话已重置。"
-    await send_msg(msg_type, recipient_id, reset_message)
+    await send_msg(msg_type, user_info["recipient_id"], reset_message)
 
 async def session_timeout_check():
     global last_activity_time

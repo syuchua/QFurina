@@ -16,7 +16,9 @@ EXPOSE 3001
 EXPOSE 8011
 
 # 设置环境变量
-ENV PYTHONUNBUFFERED=1
+ENV IS_DOCKER=true
+ENV MONGO_URI=mongodb://mongo:27017
+ENV MONGO_DB_NAME=chatbot_db
 
 # 启动应用
 CMD ["python", "main.py"]

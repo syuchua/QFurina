@@ -8,9 +8,9 @@ config = Config.get_instance()
 CONFIG_FILE_PATH = 'config/config.json'
 
 @admin_only
-async def handle_r18_command(msg_type, recipient_id, r18_mode, send_msg):
+async def handle_r18_command(msg_type, user_info, r18_mode, send_msg):
     if r18_mode not in ['0', '1', '2']:
-        await send_msg(msg_type, recipient_id, "无效的r18模式。可用模式为：0（关闭），1（开启），2（随机）。")
+        await send_msg(msg_type, user_info["recipient_id"], "无效的r18模式。可用模式为：0（关闭），1（开启），2（随机）。")
         return
     
     try:
@@ -28,10 +28,10 @@ async def handle_r18_command(msg_type, recipient_id, r18_mode, send_msg):
         # 重新加载配置
         config.reload_config()
 
-        await send_msg(msg_type, recipient_id, f"r18模式已更新为 {r18_mode}")
+        await send_msg(msg_type, user_info["recipient_id"], f"r18模式已更新为 {r18_mode}")
     except FileNotFoundError:
-        await send_msg(msg_type, recipient_id, "错误：无法找到配置文件。")
+        await send_msg(msg_type, user_info["recipient_id"], "错误：无法找到配置文件。")
     except json.JSONDecodeError:
-        await send_msg(msg_type, recipient_id, "错误：配置文件格式不正确。")
+        await send_msg(msg_type, user_info["recipient_id"], "错误：配置文件格式不正确。")
     except Exception as e:
-        await send_msg(msg_type, recipient_id, f"更新r18模式失败: {str(e)}")
+        await send_msg(msg_type, user_info["recipient_id"], f"更新r18模式失败: {str(e)}")

@@ -3,7 +3,7 @@ import asyncio, threading, os, time, schedule
 from app.task_manger import task_manager
 from app.config import Config
 from app.logger import clean_old_logs, logger
-from app.database import MongoDB
+from app.DB.database import MongoDB
 from app.message import process_group_message, process_private_message
 from commands.reset import session_timeout_check
 from app.decorators import error_handler
@@ -12,8 +12,10 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.voice_service import clean_voice_directory
 from utils.file import app
 from wsgiref.simple_server import make_server
+from app.plugin.plugin_manager import PluginManager
 
 config = Config.get_instance()
+plugin_manager = PluginManager()
 
 # 定义全局线程池
 thread_pool = ThreadPoolExecutor(max_workers=10)
@@ -103,11 +105,7 @@ def schedule_jobs():
     # 定时开关机
     schedule.every().day.at(config.DISABLE_TIME).do(asyncio.run, shutdown_gracefully())
     schedule.every().day.at(config.ENABLE_TIME).do(asyncio.run, restart_main_loop())
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0cf3b3053d8cb01c681789e82c352fdd0b776a56
     # 定时清理任务
     schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
     schedule.every().day.at("03:00").do(clean_old_logs, days=14)
@@ -142,6 +140,9 @@ async def task():
 
     flask_server.start()
     await task_manager.start()
+
+    # 加载插件
+    await plugin_manager.load_plugins()
 
     try:
         tasks = [session_timeout_check()]

@@ -4,12 +4,14 @@ from app.logger import logger
 import aiohttp
 import asyncio
 from functools import wraps
+from app.decorators import async_timed
 
 config = Config.get_instance()
 
 
 def select_connection_method(func):
     @wraps(func)
+    @async_timed()
     async def wrapper(msg_type, number, msg, use_voice=False, *args, **kwargs):
         # logger.info(f"\nPreparing to send {msg_type} message: {msg}\n")
 
