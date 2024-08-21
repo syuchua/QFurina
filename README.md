@@ -23,7 +23,7 @@
 1. 克隆项目并进入目录:
    ```
    git clone -b dev https://github.com/syuchua/MY_QBOT.git
-   cd MY_QBOT
+   cd MY_QBOT && mkdir data/music
    ```
 
 2. 编辑配置文件:
@@ -48,7 +48,7 @@
 1. 克隆项目:
    ```
    git clone -b dev https://github.com/syuchua/MY_QBOT.git
-   cd MY_QBOT
+   cd MY_QBOT && mkdir data/music
    ```
 
 2. 创建虚拟环境 (可选):
