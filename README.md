@@ -26,13 +26,12 @@
    cd MY_QBOT
    ```
 
-2. 创建并编辑配置文件:
+2. 编辑配置文件:
    ```
-   mkdir -p config
-   cp example.json.txt config/config.json
    nano config/config.json
    ```
    根据需要修改配置文件内容。
+  如果需要配置gpt以外的模型，可以修改model.json，其中vision项表示模型是否支持识图
 
 3. 启动服务:
    ```
@@ -64,29 +63,6 @@
    ```
 
 4. 配置:
-   复制 `config.example.json` 到 `config/config.json` 并根据需要修改。
-
-5. 运行:
-   ```
-   python main.py
-   ```
-
-## 配置说明
-
-1. 在项目根目录下找到 `example.json.txt` 文件。
-2. 将此文件复制并重命名为 `config/config.json`。
-3. 使用文本编辑器打开 `config.json`。
-4. 根据文件中的注释，替换所有需要自定义的值：
-   - 务必替换 `api_key` 为您的实际 API 密钥。
-   - 更新 `self_id` 和 `admin_id` 为实际的 QQ 号。
-   - 根据需要调整其他设置，如昵称、启用时间、插件等。
-5. 删除所有注释行（以 // 开头的行）。
-6. 保存文件。
-
-注意：
-- `config.example.json.txt` 仅作为模板，请不要直接修改此文件。
-- 确保您的 `config.json` 是有效的 JSON 格式。
-- 如果不确定某项配置的作用，请参考项目文档或保持默认值。
 
 - `openai_api_key`: OpenAI API密钥
 - `model`: 使用的模型 (默认: gpt-3.5-turbo)
@@ -99,7 +75,13 @@
 - `reply_probability`: 无昵称时的回复频率
 - `r18`: R18内容设置 (0关闭, 1开启, 2随机)
 
-完整配置选项请参考 `config.example.json`。
+完整配置选项请参考 `example.json.txt`。
+
+5. 运行:
+   ```
+   python main.py
+   ```
+
 
 ## 插件开发(插件系统待完善)
 
