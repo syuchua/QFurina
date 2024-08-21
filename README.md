@@ -107,3 +107,9 @@
 ## 许可
 
 本项目采用[MIT许可](LICENSE)。
+
+## [附上一个自己的api中转站，支持各种主流模型，有需要的可以看看](https://api.yuchu.me)
+
+## [gpt_sovits整合包](https://cloud.yuchu.me/s/J2um)
+
+### [一些AI翻唱资源](https://cloud.yuchu.me/s/KRCv)
