@@ -18,7 +18,7 @@
 
 ## 部署指南
 
-### Docker部署 (推荐)
+### Docker部署 (已集成[napcat](https://github.com/NapNeko/NapCatQQ)和mongodb数据库)
 
 1. 克隆项目并进入目录:
    ```
@@ -77,10 +77,53 @@
 
 完整配置选项请参考 `example.json.txt`。
 
-5. 运行:
+5. 安装并配置 MongoDB:
+   a. 下载 MongoDB Community Server: https://www.mongodb.com/try/download/community
+
+   b. 安装 MongoDB:
+      - Windows: 运行下载的安装程序，按照向导完成安装。
+      - Linux: 根据您的发行版，使用包管理器安装。例如，Ubuntu:
+        ```
+        sudo apt update
+        sudo apt install mongodb
+        ```
+
+   c. 启动 MongoDB 服务:
+      - Windows:
+        - 如果您将 MongoDB 安装为服务，它应该已经自动启动。
+        - 否则，在mongod.exe所在目录下打开命令提示符并运行:
+          ```
+           mongod --dbpath D:\MongoDB\data --logpath D:\MongoDB\log\mongodb.log --logappend
+          ```
+        （请将对应目录替换为你自己的）
+
+      - Linux:
+        ```
+        sudo systemctl start mongodb
+        ```
+        如果使用较旧的系统或 MongoDB 版本:
+        ```
+        sudo service mongodb start
+
+6. 运行:
    ```
    python main.py
    ```
+
+## 命令功能
+
+机器人支持以下命令：
+
+- `/help`：显示帮助信息。
+- `/reset`：重置当前会话。
+- `/character`：输出`config.json`中的`character`值，也即当前的人设。
+- `/history`: 输出之前的条消息记录，默认十条，也可以接空格+数字指定。
+- `/clear`:清除消息记录，默认十条，可接空格+数字指定。
+- `/music_list`: 获取歌曲列表
+- `/r18 [0, 1, 2]`切换涩图接口r18模式，0为关闭，1为开启，2随机
+- `/model [new_model]`切换模型，新模型需先在model.json中配置好
+- `/shutdown`关机
+- `/restart`重启
 
 
 ## 插件开发(插件系统待完善)
@@ -113,3 +156,20 @@
 ## [gpt_sovits整合包](https://cloud.yuchu.me/s/J2um)
 
 ### [一些AI翻唱资源](https://cloud.yuchu.me/s/KRCv)
+
+### 获取bing的cookie用于非gpt系列的AI绘图
+
+[如果视频无法渲染可以点击链接下载](https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4)
+
+<div class="onebox video-onebox" dir="auto">
+            <video width="100%" height="100%" controls="" __idm_id__="8195">
+              <source src="https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4">
+              <a href="https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4" rel="noopener nofollow ugc">
+                "https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4"
+              </a>
+            </video>
+</div>
+
+### 一些跟芙芙聊天的日常
+【谁家傻芙芙连9.8和9.11哪个大都分不清】 https://www.bilibili.com/video/BV1TivWeFEot/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca
+
