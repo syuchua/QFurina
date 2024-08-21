@@ -105,7 +105,6 @@ def schedule_jobs():
     # 定时开关机
     schedule.every().day.at(config.DISABLE_TIME).do(asyncio.run, shutdown_gracefully())
     schedule.every().day.at(config.ENABLE_TIME).do(asyncio.run, restart_main_loop())
-
     # 定时清理任务
     schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
     schedule.every().day.at("03:00").do(clean_old_logs, days=14)
