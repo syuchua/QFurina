@@ -1,0 +1,72 @@
+{
+    // 您的 API 密钥，请替换为实际值
+    "api_key": "your_api_key_here",
+
+    // 使用的 AI 模型，可以是 "gpt-3.5-turbo" 或其他支持的模型
+    "model": "gpt-3.5-turbo",
+
+    // API 代理地址，如果不需要代理可以删除此行
+    "proxy_api_base": "https://api.example.com/v1",
+
+    // 机器人的昵称列表，用户可以用这些名字呼叫机器人
+    "nicknames": [
+        "Bot",
+        "Assistant",
+        "Helper"
+    ],
+
+    // 机器人的 QQ 号，请替换为实际的 QQ 号
+    "self_id": 1234567890,
+
+    // 管理员的 QQ 号，拥有特殊权限，请替换为实际的 QQ 号
+    "admin_id": 9876543210,
+
+    // 被屏蔽用户的 QQ 号列表
+    "block_id": [
+        1111111111,
+        2222222222
+    ],
+
+    // 连接类型，可以是 "ws_reverse" 或 "http"
+    "connection_type": "ws_reverse",
+
+    // 机器人的工作时间
+    "enable_time": "09:00",
+    "disable_time": "23:00",
+
+    // 系统消息配置，定义机器人的角色和功能
+    "system_message": {
+        "character": "You are a helpful assistant. Your name is Bot. You are polite and friendly.",
+        "function1": "This is an example function description."
+    },
+
+    // 管理员的称呼列表
+    "admin_titles": [
+        "Admin",
+        "Owner",
+        "Master"
+    ],
+
+    // 在没有被直接呼叫时的回复概率（0-1之间）
+    "reply_probability": 0.1,
+
+    // R18 内容设置：0-关闭，1-开启，2-随机
+    "r18": 0,
+
+    // 语音文件保存路径
+    "audio_save_path": "data/voice",
+
+    // 消息队列大小
+    "message_queue_size": 10,
+
+    // 语音服务 URL，用于文字转语音功能
+    "voice_service_url": "http://example.com/tts",
+
+    // 机器人的名字，用于某些特定功能
+    "cha_name": "Bot",
+
+    // 启用的插件列表
+    "enabled_plugins": [
+        "example_plugin"
+    ]
+}

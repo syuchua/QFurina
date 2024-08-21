@@ -1,19 +1,21 @@
 # * - message.py - *
 from functools import wraps
 from app.logger import logger
-import re, random, time, asyncio, aiohttp
+import re, random, asyncio, aiohttp
 from app.config import Config
 from app.command import handle_command
 from app.ws_decorators import select_connection_method
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
 from app.function_calling import handle_command_request, handle_image_request, handle_voice_request, handle_image_recognition, music_handler, weather_handler, handle_web_search
-from app.database import db
+from app.DB.database import db
 from app.split_message import split_message
 from utils.current_time import get_current_time, get_lunar_date_info
-from app.decorators import async_timed, error_handler, rate_limit, retry
+from app.decorators import async_timed, error_handler, rate_limit
+from app.plugin.plugin_manager import PluginManager
 
 config = Config.get_instance()
+plugin_manager = PluginManager()
 
 # 超时重试装饰器
 def retry_on_timeout(retries=1, timeout=10):
@@ -50,36 +52,45 @@ async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=Fals
         except asyncio.TimeoutError:
             msg = "语音合成超时，请稍后再试。"
 
-    params = {
-        'message': msg,
-        **({'group_id': number} if msg_type == 'group' else {'user_id': number})
-    }
-    if config.CONNECTION_TYPE == 'http':
-        url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
-        try:
-            response = await send_http_request(url, params)
-            if 'status' in response and response['status'] == 'failed':
-                error_msg = response.get('message', response.get('wording', 'Unknown error'))
-                logger.error(f"Failed to send {msg_type} message: {error_msg}")
-                if not is_error_message:
-                    await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
-            else:
-                logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
-                logger.debug(f"API response: {response}")
-        except aiohttp.ClientResponseError as e:
-            if e.status == 404:
-                logger.error(f"Resource not found: {e}")
-                await send_msg(msg_type, number, "资源未找到 (404 错误)。", is_error_message=True)
-            else:
+    # 使用消息截断器
+    message_parts = split_message(msg)
+    for part in message_parts:
+        params = {
+            'message': part,
+            **({'group_id': number} if msg_type == 'group' else {'user_id': number})
+        }
+
+    # params = {
+    #     'message': msg,
+    #     **({'group_id': number} if msg_type == 'group' else {'user_id': number})
+    # }
+        if config.CONNECTION_TYPE == 'http':
+            url = f"http://127.0.0.1:3000/send_{msg_type}_msg"
+            try:
+                response = await send_http_request(url, params)
+                if 'status' in response and response['status'] == 'failed':
+                    error_msg = response.get('message', response.get('wording', 'Unknown error'))
+                    logger.error(f"Failed to send {msg_type} message: {error_msg}")
+                    if not is_error_message:
+                        await send_msg(msg_type, number, f"发送消息失败: {error_msg}", is_error_message=True)
+                else:
+                    logger.info(f"\nsend_{msg_type}_msg: {msg}\n")
+                    logger.debug(f"API response: {response}")
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404:
+                    logger.error(f"Resource not found: {e}")
+                    await send_msg(msg_type, number, "资源未找到 (404 错误)。", is_error_message=True)
+                else:
+                    logger.error(f"HTTP error occurred: {e}")
+                    await send_msg(msg_type, number, f"HTTP 错误: {e}", is_error_message=True)
+            except asyncio.TimeoutError:
+                logger.error("Request timed out after retries")
+                await send_msg(msg_type, number, "请求超时，请稍后再试。", is_error_message=True)
+            except aiohttp.ClientError as e:
                 logger.error(f"HTTP error occurred: {e}")
                 await send_msg(msg_type, number, f"HTTP 错误: {e}", is_error_message=True)
-        except asyncio.TimeoutError:
-            logger.error("Request timed out after retries")
-            await send_msg(msg_type, number, "请求超时，请稍后再试。", is_error_message=True)
-        except aiohttp.ClientError as e:
-            logger.error(f"HTTP error occurred: {e}")
-            await send_msg(msg_type, number, f"HTTP 错误: {e}", is_error_message=True)
 
+        await asyncio.sleep(0.3) # 等待0.3秒,防止发送过快
 
 def get_dialogue_response(user_input):
     for dialogue in config.DIALOGUES:
@@ -108,7 +119,12 @@ def process_chat_message(msg_type):
                 context_type = 'private' if msg_type == 'private' else 'group'
                 context_id = recipient_id
 
-                user_info = {"user_id": user_id, "username": username}
+                user_info = {
+                    "user_id": user_id,
+                    "username": username,
+                    "group_id": rev['group_id'] if msg_type == 'group' else None,
+                    "recipient_id": recipient_id
+                }
                 db.insert_user_info(user_info)
 
                 # 调用原始函数，可能会修改 user_input 或执行其他特定逻辑
@@ -142,11 +158,28 @@ def process_chat_message(msg_type):
                 elif include_festival:
                     time_str += "\n今天没有特殊的公历节日"
 
+                #调用插件的on_message方法并获取响应
+                plugin_responses = await plugin_manager.call_on_message(user_input)
+                #logger.info(f"Plugin responses: {plugin_responses}")
+
+                if plugin_responses:
+                    #如果有插件响应,直接发送插件的响应
+                    for response in plugin_responses:
+                        await send_msg(msg_type, recipient_id, response)
+                    return  # 如果插件处理了消息,就不再进行后续的AI处理
+
+                # 如果没有插件响应,在继续AI处理之前
+                if not plugin_responses:
+                    logger.debug("No plugin responses, continuing with AI processing")
+
                 # 检测命令
                 full_command = await handle_command_request(user_input)
                 if full_command:
-                    await handle_command(full_command, msg_type, recipient_id, send_msg, context_type, context_id)
+                    # 调用插件的on_command方法
+                    await plugin_manager.call_on_command(full_command, "")
+                    await handle_command(full_command, msg_type, user_info, send_msg, context_type, context_id)
                     return
+
 
                 # 处理特殊请求
                 if contains_special_keywords(user_input):
@@ -202,14 +235,17 @@ def process_chat_message(msg_type):
                 else:
                     response_with_username = f"{username}，{response_text}"
 
+                # 调用插件的on_send方法
+                await plugin_manager.call_on_send(response_with_username)
+
                 # 使用消息截断器发送最终响应
-                # response_parts = split_message(response_with_username)
-                # for part in response_parts:
-                #     await send_msg(msg_type, recipient_id, part)
-                #     await asyncio.sleep(0.3)
+                response_parts = split_message(response_with_username)
+                for part in response_parts:
+                    await send_msg(msg_type, recipient_id, part)
+                    await asyncio.sleep(0.3)
 
                 # 直接发送完整消息，不使用消息截断器
-                await send_msg(msg_type, recipient_id, response_with_username)
+                #await send_msg(msg_type, recipient_id, response_with_username)
 
             except Exception as e:
                 logger.error(f"Error in process_chat_message: {e}")
@@ -220,7 +256,8 @@ def process_chat_message(msg_type):
 
 def contains_special_keywords(user_input):
     keywords = ["发一张", "来一张", "再来一张", "来份涩图", "来份色图", "画一张", "生成一张", 
-                "语音回复", "用声音说", "语音说", "#voice", "#draw", "#recognize", "#search"]
+                "语音回复", "用声音说", "语音说", "#voice", "#draw", "#recognize", "#search",
+                "点歌", "来首歌", "来首音乐", "来一首歌", "来一首音乐"]
     return any(keyword in user_input for keyword in keywords)
 
 @async_timed()
@@ -380,15 +417,24 @@ async def process_special_responses(response_text, msg_type, recipient_id, user_
 @process_chat_message('private')
 async def process_private_message(rev):
     logger.info(f"\nReceived private message from user {rev['sender']['user_id']}: {rev['raw_message']}\n")
-    return rev['raw_message']
+    user_input = rev['raw_message']
+    # 调用插件的on_receive方法
+    await plugin_manager.call_on_receive(user_input)
+
+    return user_input
+
+
 
 @process_chat_message('group')
 async def process_group_message(rev):
-    logger.info(f"\nReceived group message in group {rev['group_id']}: {rev['raw_message']}\n")
+    logger.info(f"\nReceived group message from user {rev['sender']['user_id']} in group {rev['group_id']}: {rev['raw_message']}\n")
 
     user_input = rev['raw_message']
     group_id = rev['group_id']
     user_id = rev['sender']['user_id']
+
+    # 调用插件的on_receive方法
+    await plugin_manager.call_on_receive(user_input)
 
     block_id = config.BLOCK_ID
     contains_nickname = any(nickname in user_input for nickname in config.NICKNAMES)

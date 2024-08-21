@@ -2,7 +2,7 @@ import json
 from loguru import logger
 import asyncio
 import re
-from app.database import db
+from app.DB.database import db
 from app.config import Config
 from app.driver import close, start_reverse_ws_server, call_api
 
@@ -102,7 +102,7 @@ async def start_http_server():
             writer.close()
             await writer.wait_closed()
 
-    server = await asyncio.start_server(handle_client, '127.0.0.1', port=3001)
+    server = await asyncio.start_server(handle_client, '0.0.0.0', port=3001)
     logger.info(f'Serving on {server.sockets[0].getsockname()}...')
     async with server:
         await server.serve_forever()

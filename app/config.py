@@ -46,6 +46,7 @@ class Config:
         self.CONNECTION_TYPE = self.config_data.get('connection_type', 'http')
         self.ENABLE_TIME = self.config_data.get('enable_time')
         self.DISABLE_TIME = self.config_data.get('disable_time')
+        self.ENABLED_PLUGINS = self.config_data.get('enabled_plugins', [])
         with open(DIALOGUES_PATH, 'r', encoding='utf-8') as f:
             self.DIALOGUES = json.load(f)
 
@@ -61,6 +62,23 @@ class Config:
         
         if not isinstance(self.REPLY_PROBABILITY, float) or not 0 <= self.REPLY_PROBABILITY <= 1:
             raise ValueError("REPLY_PROBABILITY 必须是 0 到 1 之间的浮点数")
+
+    def save_config(self):
+        config_path = 'config/config.json'
+        try:
+            # 首先读取现有的配置文件
+            with open(config_path, 'r', encoding='utf-8') as config_file:
+                existing_config = json.load(config_file)
+
+            # 只更新 enabled_plugins
+            existing_config['enabled_plugins'] = self.ENABLED_PLUGINS
+
+            # 写回文件
+            with open(config_path, 'w', encoding='utf-8') as config_file:
+                json.dump(existing_config, config_file, ensure_ascii=False, indent=4)
+            logger.info("已成功更新 enabled_plugins 配置")
+        except Exception as e:
+            logger.error(f"保存配置到 config.json 时出错: {str(e)}")
 
 # 获取配置实例
 config = Config.get_instance()

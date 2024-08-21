@@ -1,5 +1,5 @@
 # help.py
-async def handle_help_command(msg_type, number, send_msg):
+async def handle_help_command(msg_type, user_info, send_msg):
         help_message = (
             "这是帮助信息：命令前请跟上/，#，或!\n"
             "1. 使用 'help' 命令获取帮助信息。\n"
@@ -18,4 +18,4 @@ async def handle_help_command(msg_type, number, send_msg):
             "14. 使用 'shutdown'命令关闭机器人。\n"
             "15. 使用 'restart'命令重启\n"
         )
-        await  send_msg(msg_type, number, help_message)
+        await  send_msg(msg_type, user_info["recipient_id"], help_message)

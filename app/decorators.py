@@ -11,8 +11,10 @@ def error_handler(func):
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            logger.error(f"函数 {func.__name__} 执行出错: {str(e)}")
+            错误消息 = f"函数 {func.__name__} 执行出错: {str(e)}"
+            logger.error(错误消息)
             # 这里可以添加错误通知逻辑，比如发送邮件或推送消息
+            # 例如: await send_notification(错误消息)
             raise
     return wrapper
 
@@ -31,10 +33,15 @@ def rate_limit(calls: int, period: float):
 
 def admin_only(func):
     @wraps(func)
-    async def wrapper(msg_type, user_id, *args, **kwargs):
-        if user_id != config.ADMIN_ID:
+    async def wrapper(msg_type, user_info, *args, **kwargs):
+        user_id = user_info['user_id']
+        logger.info(f"Checking admin status for user: {user_id}")
+        
+        if str(user_id) != str(config.ADMIN_ID):
+            logger.warning(f"Non-admin user {user_id} attempted to use admin command")
             return "对不起，您没有执行此命令的权限。"
-        return await func(msg_type, user_id, *args, **kwargs)
+        logger.info(f"Admin command executed by user: {user_id}")
+        return await func(msg_type, user_info, *args, **kwargs)
     return wrapper
 
 def retry(max_retries: int = 3, delay: float = 1.0):

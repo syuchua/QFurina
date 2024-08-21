@@ -7,7 +7,7 @@ config = Config.get_instance()
 
 
 @admin_only
-async def handle_model_command(msg_type, number, new_model, send_msg):
+async def handle_model_command(msg_type, user_info, new_model, send_msg):
     try:
         # 构建 model.json 的路径
         model_json_path = os.path.join('config', 'model.json')
@@ -22,7 +22,7 @@ async def handle_model_command(msg_type, number, new_model, send_msg):
             available_models.extend(model_config_data['models'][model_type]['available_models'])
 
         if new_model not in available_models:
-            await send_msg(msg_type, number, f"错误：'{new_model}' 不是可用的模型。可用的模型有：{', '.join(available_models)}")
+            await send_msg(msg_type, user_info["recipient_id"], f"错误：'{new_model}' 不是可用的模型。可用的模型有：{', '.join(available_models)}")
             return
 
         # 更新模型
@@ -35,10 +35,10 @@ async def handle_model_command(msg_type, number, new_model, send_msg):
         # 重新加载配置
         config.reload_config()
 
-        await send_msg(msg_type, number, f"模型已更新为 {new_model} 并且配置已成功重新加载。")
+        await send_msg(msg_type, user_info["recipient_id"], f"模型已更新为 {new_model} 并且配置已成功重新加载。")
     except FileNotFoundError:
-        await send_msg(msg_type, number, "错误：无法找到 model.json 文件。")
+        await send_msg(msg_type, user_info["recipient_id"], "错误：无法找到 model.json 文件。")
     except json.JSONDecodeError:
-        await send_msg(msg_type, number, "错误：model.json 文件格式不正确。")
+        await send_msg(msg_type, user_info["recipient_id"], "错误：model.json 文件格式不正确。")
     except Exception as e:
-        await send_msg(msg_type, number, f"更新模型失败：{str(e)}")
+        await send_msg(msg_type, user_info["recipient_id"], f"更新模型失败：{str(e)}")

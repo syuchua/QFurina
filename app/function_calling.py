@@ -21,7 +21,7 @@ async def call_function(model_name: str, endpoint: str, payload: dict) -> Option
         return None
 
 async def handle_command_request(user_input):
-    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown)(?:\s+(.+))?')
+    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown|enable_plugin|disable_plugin|list_plugins|reload_plugin)(?:\s+(.+))?')
     match = COMMAND_PATTERN.match(user_input)
     if match:
         command = match.group(1)
