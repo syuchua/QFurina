@@ -2,11 +2,11 @@
 
 from app.logger import logger
 import aiohttp
-from utils.city_codes import get_city_code, get_city_name
+from utils.city_codes import get_city_code
 
 
 WEATHER_BASE_URL = 'https://restapi.amap.com/v3/weather/weatherInfo'
-AMAP_API_KEY = '5366822e47889703d452e600b3ad5f05'
+AMAP_API_KEY = 'your_api_key'
 
 
 async def get_weather(city):
