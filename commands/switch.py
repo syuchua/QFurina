@@ -1,7 +1,7 @@
 # switch.py
 from functools import wraps
-from app.config import Config
-from app.decorators import admin_only
+from app.Core.config import Config
+from app.Core.decorators import admin_only
 
 config = Config.get_instance()
 

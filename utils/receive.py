@@ -2,9 +2,9 @@ import json
 from loguru import logger
 import asyncio
 import re
-from app.database import MongoDB
-from app.config import Config
-from app.driver import receive_msg, send_msg, close, start_reverse_ws_server, call_api
+from app.DB.database import db
+from app.Core.config import Config
+from app.Core.driver import close, start_reverse_ws_server, call_api
 
 config = Config.get_instance()
 
@@ -24,25 +24,28 @@ def request_to_json(msg):
 
 # 用于接收消息的队列
 message_queue = asyncio.Queue(maxsize=config.MESSAGE_QUEUE_SIZE)
-db = MongoDB()
 
 # 捕获并处理优先级命令
 async def handle_priority_command(rev_json):
-    command_pattern = re.compile(r'^[!/#](reset|character|clear)(?:\s+(.+))?')
-    user_input = rev_json.get('raw_message')
-    match = command_pattern.match(user_input)
-    if match:
-        logger.info(f"Detected priority command: {user_input}")
-        queue_with_priority = asyncio.Queue()
-        queue_with_priority.put_nowait(rev_json)  # 将优先级命令放入新队列的最前端
-        while not message_queue.empty():
-            msg = message_queue.get_nowait()
-            queue_with_priority.put_nowait(msg)
-        while not queue_with_priority.empty():
-            msg = queue_with_priority.get_nowait()
-            await message_queue.put(msg)
-        return True
-    return False
+    try:
+        command_pattern = re.compile(r'^[!/#](reset|character|clear)(?:\s+(.+))?')
+        user_input = rev_json.get('raw_message')
+        match = command_pattern.match(user_input)
+        if match:
+            logger.info(f"Detected priority command: {user_input}")
+            queue_with_priority = asyncio.Queue()
+            queue_with_priority.put_nowait(rev_json)  # 将优先级命令放入新队列的最前端
+            while not message_queue.empty():
+                msg = message_queue.get_nowait()
+                queue_with_priority.put_nowait(msg)
+            while not queue_with_priority.empty():
+                msg = queue_with_priority.get_nowait()
+                await message_queue.put(msg)
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error handling priority command: {str(e)}")
+        return False
 
 async def handle_message(rev_json):
     if 'post_type' not in rev_json:
@@ -52,19 +55,19 @@ async def handle_message(rev_json):
     if rev_json['post_type'] == 'message':
         user_input = rev_json.get('raw_message', '')
         user_id = rev_json.get('sender', {}).get('user_id')
-        username = rev_json.get('sender', {}).get('nickname')
+        # username = rev_json.get('sender', {}).get('nickname')
         group_id = rev_json.get('group_id')
         context_type = 'private' if rev_json.get('message_type') == 'private' else 'group'
         context_id = user_id if context_type == 'private' else group_id
 
         if user_input:
-            db.insert_chat_message(user_id, user_input, '', context_type, context_id, username)
+            db.insert_chat_message(user_id, user_input, '', context_type, context_id)
 
             if await handle_priority_command(rev_json):
                 return
 
             # 要屏蔽的id
-            block_id = [3780469992, 3542896617, 3758919058]
+            block_id = config.BLOCK_ID
 
             if user_id not in block_id:
                 await message_queue.put(rev_json)
@@ -105,7 +108,7 @@ async def start_http_server():
         await server.serve_forever()
 
 async def start_reverse_ws():
-    await start_reverse_ws_server('0.0.0.0', 8011, handle_message)
+    await start_reverse_ws_server('127.0.0.1', 8011, handle_message)
     logger.info("反向 WebSocket 服务器已启动，等待连接...")
 
 async def close_connection():
@@ -130,6 +133,12 @@ async def close_connection():
 
 # 异步的消息接收函数
 async def rev_msg():
-    return await message_queue.get()  # 直接从队列获取消息
+    try:
+        message = await message_queue.get()
+        logger.debug(f"Retrieved message from queue: {message}")
+        return message
+    except Exception as e:
+        logger.error(f"Error retrieving message from queue: {e}")
+        return None
 
 __all__ = ['message_queue', 'start_http_server', 'start_reverse_ws', 'rev_msg', 'call_api', 'close_connection']

@@ -6,7 +6,7 @@ import aiohttp
 import browser_cookie3 as bc
 from app.logger import logger
 from typing import List, Dict
-import json, os, random, psutil
+import json, os, random
 
 class AuthCookieError(Exception):
     pass

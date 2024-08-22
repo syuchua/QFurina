@@ -1,51 +1,52 @@
 from app.plugin.plugin_base import PluginBase
-from app.decorators import async_timed, error_handler
 from app.logger import logger
 
 @PluginBase.register("example_plugin")
-class Example_pluginPlugin(PluginBase):
+class ExamplePlugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.name = "example_plugin"
         self.version = "1.0"
-        self.description = "This is an example plugin"
+        self.description = "这是一个示例插件"
 
     async def on_load(self):
-        logger.debug("Example plugin loaded")
+        logger.debug("示例插件已加载")
 
-    async def on_message(self, message):
-        if "hello plugin" in message.lower():
-            logger.info("Example plugin responding to 'hello plugin'")
-            return "Hello from the example plugin!"
-        logger.info("Example plugin not responding to this message")
+    async def on_message(self, rev, msg_type, *args, **kwargs):
+        logger.debug(f"ExamplePlugin.on_message called with: rev={rev}, msg_type={msg_type}, args={args}, kwargs={kwargs}")
+        
+        message = rev.get('raw_message', '')
+        #logger.debug(f"Raw message: {message}")
+
+        if isinstance(message, list):
+            #logger.debug("Message is a list, extracting text content")
+            text = ' '.join([m['data']['text'] for m in message if m['type'] == 'text'])
+        else:
+            text = message
+
+        #logger.debug(f"Processed text: {text}")
+
+        if 'hello plugin' in text.lower():
+            return "Hello! This is an example plugin response."
+        
         return None
 
-    async def on_command(self, command, args):
-        if command == "plugin_example":
-            return "This is an example plugin command"
-
     async def on_unload(self):
-        logger.info("Example plugin unloaded")
+        logger.debug("示例插件已卸载")
 
-    async def on_receive(self, message):
-        logger.info(f"Example plugin received message: {message}")
+    async def on_command(self, command, msg_type, user_info, send_msg, context_type, context_id):
+        parts = command.split()
+        main_command = parts[0].lower()
+        args = parts[1:] if len(parts) > 1 else []
 
-    async def on_send(self, message):
-        print(f"Sending message: {message}")
-
-    async def on_file_upload(self, file_info):
-        print(f"File uploaded: {file_info}")
-
-    async def on_plugin_command(self, command, args):
-        if command == "hello":
-            return f"Hello from example plugin! Args: {args}"
+        if main_command == "plugin_example":
+            if not args:
+                return "这是示例插件命令。使用方法：plugin_example <参数>"
+            return f"示例插件收到命令：{' '.join(args)}"
         return None
 
     async def on_enable(self):
-        print("Example plugin enabled")
+        logger.info("示例插件已启用")
 
     async def on_disable(self):
-        print("Example plugin disabled")
-
-    async def on_reload(self):
-        print("Example plugin reloaded")
+        logger.info("示例插件已禁用")

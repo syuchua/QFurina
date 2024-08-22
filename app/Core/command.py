@@ -7,11 +7,10 @@ from commands.character import handle_character_command
 from commands.model import handle_model_command
 from commands.r18 import handle_r18_command
 from commands.switch import handle_switch_command  
-from app.plugin.plugin_manager import PluginManager
+from app.plugin.plugin_manager import plugin_manager
 from app.plugin.plugin_base import PluginBase
 from commands.plugin import handle_enable_plugin, handle_disable_plugin, handle_list_plugins, handle_reload_plugin
 
-plugin_manager = PluginManager()
 
 async def handle_command(command, msg_type, user_info, send_msg, context_type, context_id):
     parts = command.split(' ', 1)

@@ -1,10 +1,10 @@
-from app.driver import driver_instance as ws_driver
-from app.config import Config
+from ..Core.driver import driver_instance as ws_driver
+from ..Core.config import Config
 from app.logger import logger
 import aiohttp
 import asyncio
 from functools import wraps
-from app.decorators import async_timed
+from ..Core.decorators import async_timed
 
 config = Config.get_instance()
 

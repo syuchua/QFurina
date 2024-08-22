@@ -1,11 +1,9 @@
 import asyncio
 from app.logger import logger
 from utils.receive import message_queue  # 导入消息队列
-from app.config import Config
+from app.Core.config import config
 # 定义会话超时时间（以秒为单位），例如 15 分钟
 SESSION_TIMEOUT = 15 * 60
-
-config = Config.get_instance()
 
 # 定义全局变量来跟踪会话的最后活动时间
 last_activity_time = None

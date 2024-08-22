@@ -1,5 +1,5 @@
 from typing import Callable
-from app.config import Config
+from ..Core.config import Config
 
 config = Config.get_instance()
 

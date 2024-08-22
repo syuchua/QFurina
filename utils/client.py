@@ -4,10 +4,9 @@ from functools import wraps
 from utils.cqimage import get_cq_image_base64
 from app.logger import logger
 import aiohttp, json, os
-from app.config import Config
-from app.decorators import async_timed, error_handler, rate_limit, retry
+from app.Core.config import config
+from app.Core.decorators import async_timed, error_handler, rate_limit, retry
 
-config = Config.get_instance()
 
 
 class ModelClient:

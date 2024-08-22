@@ -10,7 +10,7 @@ from utils.lolicon import fetch_image
 from utils.weather import get_forecast, get_weather
 from rapidfuzz import process, fuzz
 from utils.BingArt import bing_art
-from app.decorators import async_timed, error_handler, rate_limit
+from ..Core.decorators import async_timed, error_handler, rate_limit
 
 async def call_function(model_name: str, endpoint: str, payload: dict) -> Optional[dict]:
     try:
