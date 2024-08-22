@@ -3,10 +3,9 @@ from datetime import datetime, timedelta
 import time
 from bson import ObjectId
 from pymongo import MongoClient
-from app.logger import logger
+from ..logger import logger
 import pymongo
-from app.config import Config
-import schedule
+from ..Core.config import Config
 import os
 
 config = Config.get_instance()

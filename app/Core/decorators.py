@@ -1,7 +1,7 @@
 import asyncio
 from functools import wraps
-from app.logger import logger
-from app.config import Config
+from ..logger import logger
+from ..Core.config import Config
 
 config = Config.get_instance()
 

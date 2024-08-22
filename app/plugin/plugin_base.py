@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from ..logger import logger
+
 class PluginBase(ABC):
     plugins = {}
 
@@ -42,48 +44,53 @@ class PluginBase(ABC):
         pass
 
     @abstractmethod
-    async def on_message(self, message):
-        """当收到消息时调用"""
-        pass
-
-    @abstractmethod
-    async def on_command(self, command, args):
-        """当收到命令时调用"""
-        pass
-
-    @abstractmethod
     async def on_unload(self):
         """当插件被卸载时调用"""
         pass
 
-    @abstractmethod
+    async def on_enable(self):
+        """当插件被启用时调用"""
+        self.enabled = True
+
+    async def on_disable(self):
+        """当插件被禁用时调用"""
+        self.enabled = False
+
+    async def on_message(self, rev, msg_type, *args, **kwargs):
+        """当收到消息时调用"""
+        return None
+
+    async def on_command(self, command, msg_type, user_info, send_msg, context_type, context_id):
+        """当收到命令时调用"""
+        return None
+
     async def on_receive(self, message):
         """当接收到消息时调用"""
         pass
 
-    @abstractmethod
     async def on_send(self, message):
         """当发送消息时调用"""
         pass
 
-    @abstractmethod
     async def on_file_upload(self, file_info):
         """当文件上传时调用"""
         pass
 
-    @abstractmethod
     async def on_plugin_command(self, command, args):
         """当收到插件特定命令时调用"""
         pass
 
-    @abstractmethod
-    async def on_enable(self):
-        pass
+    async def process_message(self, rev, msg_type, *args, **kwargs):
+        logger.debug(f"PluginBase.process_message called for plugin {self.name}")
+        result = await self.on_message(rev, msg_type, *args, **kwargs)
+        if result:
+            #logger.debug(f"Plugin {self.name} processed message: {result}")
+            return result
+        logger.debug(f"Plugin {self.name} did not process message")
+        return None
 
-    @abstractmethod
-    async def on_disable(self):
-        pass
-
-    @abstractmethod
-    async def on_reload(self):
-        pass
+    async def process_command(self, command, msg_type, user_info, send_msg, context_type, context_id):
+        result = await self.on_command(command, msg_type, user_info, send_msg, context_type, context_id)
+        if result:
+            return result
+        return None

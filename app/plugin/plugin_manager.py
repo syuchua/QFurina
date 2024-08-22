@@ -3,9 +3,9 @@ import os
 import importlib
 from app.plugin.plugin_base import PluginBase
 from app.logger import logger
-from app.config import Config
+from app.Core.config import Config
 from app.plugin.PluginDependencyManager import PluginDependencyManager
-from app.decorators import async_timed, error_handler
+from app.Core.decorators import async_timed, error_handler
 
 config = Config.get_instance()
 
@@ -24,10 +24,21 @@ class PluginConfig:
             config.save_config()
 
 class PluginManager:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(PluginManager, cls).__new__(cls)
+            cls._instance.initialized = False
+        return cls._instance
+
     def __init__(self):
-        self.plugins = {}
+        if self.initialized:
+            return
         self.config = Config.get_instance()
+        self.plugins = {}
         self.dependency_manager = PluginDependencyManager()
+        self.initialized = True
 
     async def load_plugins(self):
         plugin_dir = "plugins"
@@ -114,40 +125,32 @@ class PluginManager:
         self.plugins = dict(sorted(self.plugins.items(), key=lambda x: x[1].priority, reverse=True))
 
     @error_handler
-    async def call_on_message(self, message):
-        logger.debug(f"Calling on_message for {len(self.plugins)} plugins")
-        sorted_plugins = sorted(self.plugins.values(), key=lambda x: x.priority, reverse=True)
-        responses = []
-        for plugin in sorted_plugins:
-            logger.info(f"Checking plugin: {plugin.name}, enabled: {plugin.enabled}")
+    async def call_on_message(self, rev, msg_type, *args, **kwargs):
+        #logger.debug(f"PluginManager.call_on_message called with: rev={rev}, msg_type={msg_type}, args={args}, kwargs={kwargs}")
+        for plugin in self.plugins.values():
             if plugin.enabled:
-                logger.info(f"Calling on_message for plugin: {plugin.name}")
-                try:
-                    response = await plugin.on_message(message)
-                    logger.info(f"Response from {plugin.name}: {response}")
-                    if response:
-                        responses.append(response)
-                except Exception as e:
-                    logger.error(f"Error in plugin {plugin.name} on_message: {e}", exc_info=True)
-        #logger.info(f"Total responses from plugins: {len(responses)}")
-        return responses
+                logger.debug(f"Calling process_message for plugin: {plugin.name}")
+                result = await plugin.process_message(rev, msg_type, *args, **kwargs)
+                if result:
+                    #logger.debug(f"Plugin {plugin.name} returned result: {result}")
+                    return result
+        logger.debug("No plugin processed the message")
+        return None
 
-    async def call_on_command(self, command, args):
-        responses = []
-        sorted_plugins = sorted(self.plugins.values(), key=lambda x: x.priority, reverse=True)
-        for plugin in sorted_plugins:
+    async def call_on_command(self, command, msg_type, user_info, send_msg, context_type, context_id):
+        for plugin in self.plugins.values():
             if plugin.enabled:
-                response = await plugin.on_command(command, args)
-                if response:
-                    responses.append(response)
-        return responses
+                result = await plugin.process_command(command, msg_type, user_info, send_msg, context_type, context_id)
+                if result:
+                    return result
+        return None
 
     async def call_on_receive(self, message):
         for plugin in self.plugins.values():
             if plugin.enabled:
                 try:
                     await plugin.on_receive(message)
-                    logger.info(f"plugin received message: {message}")
+                    #logger.info(f"plugin received message: {message}")
                 except Exception as e:
                     logger.error(f"Error in plugin {plugin.name} on_receive: {e}")
 
@@ -170,3 +173,5 @@ class PluginManager:
             if plugin.enabled:
                 return await plugin.on_plugin_command(command, args)
         return None
+    
+plugin_manager = PluginManager()

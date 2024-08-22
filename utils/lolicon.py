@@ -4,7 +4,7 @@ import os
 import aiohttp
 import requests
 
-from app.config import Config
+from app.Core.config import Config
 config = Config.get_instance()
 
 API_URL = "https://api.lolicon.app/setu/v2"

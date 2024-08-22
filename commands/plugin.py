@@ -1,6 +1,6 @@
 from app.plugin.plugin_manager import PluginManager
 from app.plugin.plugin_base import PluginBase
-from app.decorators import admin_only
+from app.Core.decorators import admin_only
 from app.logger import logger
 
 plugin_manager = PluginManager()

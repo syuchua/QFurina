@@ -1,5 +1,5 @@
 from utils.client import OpenAIClient
-from app.config import Config
+from app.Core.config import Config
 
 config = Config.get_instance()
 client = OpenAIClient(config.API_KEY, config.API_BASE)

@@ -5,7 +5,7 @@ import aiofiles
 import aiohttp
 import requests
 from app.logger import logger
-from app.config import Config
+from app.Core.config import Config
 
 # 获取配置实例
 config = Config.get_instance()

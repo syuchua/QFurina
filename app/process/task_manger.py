@@ -1,5 +1,5 @@
 import asyncio
-from app.logger import logger
+from ..logger import logger
 
 class TaskManager:
     def __init__(self, num_workers=10):

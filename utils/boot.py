@@ -1,21 +1,19 @@
 # *- boot.py -*
 import asyncio, threading, os, time, schedule
-from app.task_manger import task_manager
-from app.config import Config
+from app.process.task_manger import task_manager
+from app.Core.config import config
 from app.logger import clean_old_logs, logger
 from app.DB.database import MongoDB
-from app.message import process_group_message, process_private_message
+from app.Core.message import process_group_message, process_private_message
 from commands.reset import session_timeout_check
-from app.decorators import error_handler
+from app.Core.decorators import error_handler
 from utils.receive import close_connection, rev_msg, start_http_server, start_reverse_ws
 from concurrent.futures import ThreadPoolExecutor
 from utils.voice_service import clean_voice_directory
 from utils.file import app
 from wsgiref.simple_server import make_server
-from app.plugin.plugin_manager import PluginManager
+from app.plugin.plugin_manager import plugin_manager
 
-config = Config.get_instance()
-plugin_manager = PluginManager()
 
 # 定义全局线程池
 thread_pool = ThreadPoolExecutor(max_workers=10)
@@ -105,6 +103,7 @@ def schedule_jobs():
     # 定时开关机
     schedule.every().day.at(config.DISABLE_TIME).do(asyncio.run, shutdown_gracefully())
     schedule.every().day.at(config.ENABLE_TIME).do(asyncio.run, restart_main_loop())
+
     # 定时清理任务
     schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
     schedule.every().day.at("03:00").do(clean_old_logs, days=14)
