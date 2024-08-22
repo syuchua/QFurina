@@ -14,7 +14,7 @@
   9. 定时开关机
 
 ## 支持的消息平台
-目前主要在Windows端Llonebot上测试,理论上所有支持onebot v11协议的消息平台都可以使用。HTTP对接配置可能需要额外设置。
+目前主要在Windows端[Llonebot](https://github.com/LLOneBot/LLOneBot)上测试,理论上所有支持onebot v11协议的消息平台都可以使用。HTTP对接配置可能需要额外设置。
 
 ## 部署指南
 
