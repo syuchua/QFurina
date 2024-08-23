@@ -108,7 +108,7 @@ async def start_http_server():
         await server.serve_forever()
 
 async def start_reverse_ws():
-    await start_reverse_ws_server('127.0.0.1', 8011, handle_message)
+    await start_reverse_ws_server('0.0.0.0', 8011, handle_message)
     logger.info("反向 WebSocket 服务器已启动，等待连接...")
 
 async def close_connection():
