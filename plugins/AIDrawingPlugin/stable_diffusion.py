@@ -20,7 +20,7 @@ class AIDrawingPlugin(PluginBase):
         os.makedirs(self.tmp_folder, exist_ok=True)
 
     async def on_load(self):
-        self.worker_url = self.config.get('worker_url', "https://sd.yuchu.me")
+        self.worker_url = self.config.get('worker_url', "https://your-worker.dev") #你的worker地址
         self.models = self.config.get('models', {
             "v1": "dreamshaper-8-lcm",
             "v2": "stable-diffusion-xl-base-1.0",
