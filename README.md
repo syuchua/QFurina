@@ -213,7 +213,7 @@ class ExamplePlugin(PluginBase):
 
 ### [一些AI翻唱资源](https://cloud.yuchu.me/s/KRCv)
 
-### 获取bing的cookie用于非gpt系列的AI绘图
+### 获取bing的cookie用于非gpt系列的AI绘图(疑似失效，推荐cloudflare workers ai)
 
 [如果视频无法渲染可以点击链接下载](https://cloud.yuchu.me/f/qxjsX/2024-08-05%2021-41-49.mp4)
 
