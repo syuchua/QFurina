@@ -8,18 +8,16 @@ from app.Core.message import process_group_message, process_private_message
 from commands.reset import session_timeout_check
 from app.Core.decorators import error_handler
 from utils.receive import close_connection, rev_msg, start_http_server, start_reverse_ws
-from concurrent.futures import ThreadPoolExecutor
+from app.Core.thread_pool import get_thread_pool
 from utils.voice_service import clean_voice_directory
 from utils.file import app
 from wsgiref.simple_server import make_server
 from app.plugin.plugin_manager import plugin_manager
+from app.Core.onebotv11 import EventType, is_group_message, is_private_message
 
 
-# 定义全局线程池
-thread_pool = ThreadPoolExecutor(max_workers=10)
 BOT_ACTIVE = threading.Event()
 BOT_ACTIVE.set()  # 默认为激活状态
-
 
 # 定义一个事件来控制主循环
 shutdown_event = asyncio.Event()
@@ -54,20 +52,20 @@ class FlaskServer:
             logger.warning("Flask 应用程序未能在预期时间内关闭")
 
 async def process_message(rev_message):
-    is_restart_command = rev_message['raw_message'].strip().lower().startswith('/restart')
+    is_restart_command = rev_message.get('raw_message', '').strip().lower().startswith('/restart')
     
     if not BOT_ACTIVE.is_set() and not is_restart_command:
         logger.debug("机器人处于睡眠状态，忽略非重启命令")
         return
     
     if rev_message and 'post_type' in rev_message:
-        if rev_message['post_type'] == 'message':
-            message_type = rev_message.get('message_type')
-            if message_type == "private":
-                asyncio.create_task(process_private_message(rev_message))
-            elif message_type == "group":
-                asyncio.create_task(process_group_message(rev_message))
-        elif rev_message['post_type'] == 'meta_event':
+        if rev_message['post_type'] == EventType.MESSAGE.value:
+            if is_group_message(rev_message):
+                await asyncio.create_task(process_group_message(rev_message))
+            elif is_private_message(rev_message):
+                await asyncio.create_task(process_private_message(rev_message))
+        elif rev_message['post_type'] == EventType.META_EVENT.value:
+
             if rev_message['meta_event_type'] == 'heartbeat':
                 logger.debug("Received heartbeat")
             elif rev_message['meta_event_type'] == 'lifecycle' and rev_message['sub_type'] == 'connect':
@@ -159,8 +157,9 @@ async def task():
     finally:
         shutdown_event.set()
         await close_connection()
+        await plugin_manager.unload_plugins()
         flask_server.shutdown()
-        thread_pool.shutdown(wait=False)
+        get_thread_pool().shutdown(wait=False)
         logger.info("程序关闭完成")
 
 def shutdown_handler(sig, frame):

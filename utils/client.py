@@ -34,7 +34,7 @@ class ModelClient:
 class OpenAIClient(ModelClient):
     @error_handler
     @retry(max_retries=3, delay=1.0)
-    @rate_limit(calls=10, period=60)
+    @rate_limit(calls=10, period=60) # 限速装饰器，每分钟10条
     async def chat_completion(self, model, messages, **kwargs):
         payload = {
             'model': model,

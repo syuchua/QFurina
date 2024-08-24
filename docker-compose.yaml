@@ -4,8 +4,8 @@ services:
     image: syuchua01/my_qbot:dev
     container_name: my_qbot
     ports:
-      - "3001:3001"  # HTTP
       - "8011:8011"  # WebSocket
+      - "4321:4321"  # 文件上传
     volumes:
       - ./config:/app/config
       - ./data:/app/data

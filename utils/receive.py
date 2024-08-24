@@ -5,6 +5,11 @@ import re
 from app.DB.database import db
 from app.Core.config import Config
 from app.Core.driver import close, start_reverse_ws_server, call_api
+from app.Core.onebotv11 import (
+    EventType, MessageType, NoticeType, RequestType,
+    is_group_message, is_private_message, 
+    get_user_id, get_group_id, get_message_content, get_username
+)
 
 config = Config.get_instance()
 
@@ -29,7 +34,7 @@ message_queue = asyncio.Queue(maxsize=config.MESSAGE_QUEUE_SIZE)
 async def handle_priority_command(rev_json):
     try:
         command_pattern = re.compile(r'^[!/#](reset|character|clear)(?:\s+(.+))?')
-        user_input = rev_json.get('raw_message')
+        user_input = get_message_content(rev_json)
         match = command_pattern.match(user_input)
         if match:
             logger.info(f"Detected priority command: {user_input}")
@@ -52,13 +57,13 @@ async def handle_message(rev_json):
         logger.warning(f"Received unexpected message format: {rev_json}")
         return
 
-    if rev_json['post_type'] == 'message':
-        user_input = rev_json.get('raw_message', '')
-        user_id = rev_json.get('sender', {}).get('user_id')
-        # username = rev_json.get('sender', {}).get('nickname')
-        group_id = rev_json.get('group_id')
-        context_type = 'private' if rev_json.get('message_type') == 'private' else 'group'
-        context_id = user_id if context_type == 'private' else group_id
+    if rev_json['post_type'] == EventType.MESSAGE.value:
+        user_input = get_message_content(rev_json)
+        user_id = get_user_id(rev_json)
+        username = get_username(rev_json)
+        group_id = get_group_id(rev_json) if is_group_message(rev_json) else None
+        context_type = MessageType.PRIVATE.value if is_private_message(rev_json) else MessageType.GROUP.value
+        context_id = user_id if context_type == MessageType.PRIVATE.value else group_id
 
         if user_input:
             db.insert_chat_message(user_id, user_input, '', context_type, context_id)
@@ -72,9 +77,32 @@ async def handle_message(rev_json):
             if user_id not in block_id:
                 await message_queue.put(rev_json)
     
-    elif rev_json['post_type'] == 'meta_event' and rev_json['meta_event_type'] == 'heartbeat':
-        # 处理心跳事件
-        logger.debug("Received heartbeat")
+    elif rev_json['post_type'] == EventType.NOTICE.value:
+        # 处理通知事件
+        notice_type = rev_json.get('notice_type')
+        if notice_type == NoticeType.GROUP_INCREASE.value:
+            # 处理群成员增加事件
+            pass
+        elif notice_type == NoticeType.GROUP_DECREASE.value:
+            # 处理群成员减少事件
+            pass
+        # 可以添加更多通知类型的处理...
+    
+    elif rev_json['post_type'] == EventType.REQUEST.value:
+        # 处理请求事件
+        request_type = rev_json.get('request_type')
+        if request_type == RequestType.FRIEND.value:
+            # 处理好友请求
+            pass
+        elif request_type == RequestType.GROUP.value:
+            # 处理群请求
+            pass
+    
+    elif rev_json['post_type'] == EventType.META_EVENT.value:
+        # 处理元事件，例如心跳
+        if rev_json.get('meta_event_type') == 'heartbeat':
+            logger.debug("Received heartbeat")
+    
     else:
         # 处理其他类型的事件
         logger.debug(f"Received event: {rev_json['post_type']}")
@@ -108,7 +136,7 @@ async def start_http_server():
         await server.serve_forever()
 
 async def start_reverse_ws():
-    await start_reverse_ws_server('127.0.0.1', 8011, handle_message)
+    await start_reverse_ws_server('0.0.0.0', 8011, handle_message)
     logger.info("反向 WebSocket 服务器已启动，等待连接...")
 
 async def close_connection():

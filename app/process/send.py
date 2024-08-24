@@ -32,7 +32,7 @@ async def send_http_request(url, json):
 
 @select_connection_method
 @error_handler
-@rate_limit(calls=10, period=60)
+#@rate_limit(calls=10, period=60) # 限速装饰器，每分钟10条
 async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=False): # 使用限速器
     if use_voice:
         try:

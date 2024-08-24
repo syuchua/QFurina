@@ -10,15 +10,16 @@ COPY . /app
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 暴露端口3001用于接收QQ上报的http消息
-EXPOSE 3001
 # 暴露端口8011用于WebSocket连接
 EXPOSE 8011
+
+# 暴露端口4321用于文件上传
+EXPOSE 4321
 
 # 设置环境变量
 ENV IS_DOCKER=true
 ENV MONGO_URI=mongodb://mongo:27017
-ENV MONGO_DB_NAME=chatbot_db
+ENV MONGO_DB_NAME=chatbot_db 
 
 # 启动应用
 CMD ["python", "main.py"]

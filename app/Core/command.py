@@ -7,10 +7,13 @@ from commands.character import handle_character_command
 from commands.model import handle_model_command
 from commands.r18 import handle_r18_command
 from commands.switch import handle_switch_command  
-from app.plugin.plugin_manager import plugin_manager
-from app.plugin.plugin_base import PluginBase
-from commands.plugin import handle_enable_plugin, handle_disable_plugin, handle_list_plugins, handle_reload_plugin
-
+from commands.plugin import (
+    handle_enable_plugin,
+    handle_disable_plugin,
+    handle_list_plugins,
+    handle_reload_plugin,
+    handle_plugin_info
+)
 
 async def handle_command(command, msg_type, user_info, send_msg, context_type, context_id):
     parts = command.split(' ', 1)
@@ -28,6 +31,8 @@ async def handle_command(command, msg_type, user_info, send_msg, context_type, c
             await handle_list_plugins(msg_type, user_info, send_msg)
         elif main_command == 'reload_plugin':
             await handle_reload_plugin(msg_type, user_info, args, send_msg)
+        elif main_command == 'plugin_info':
+            await handle_plugin_info(msg_type, user_info, args, send_msg)
         elif main_command == 'model':
             if not args:
                 raise ValueError("缺少模型参数")

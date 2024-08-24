@@ -14,7 +14,7 @@
   9. 定时开关机
 
 ## 支持的消息平台
-目前主要在Windows端[Llonebot](https://github.com/LLOneBot/LLOneBot)上测试,理论上所有支持onebot v11协议的消息平台都可以使用。HTTP对接配置可能需要额外设置。
+目前主要在Windows端Llonebot上测试,理论上所有支持onebot v11协议的消息平台都可以使用。HTTP对接配置可能需要额外设置。
 
 ## 部署指南
 
@@ -126,22 +126,78 @@
 - `/restart`重启
 
 
-## 插件开发(插件系统待完善)
+## 插件系统
 
-我们欢迎社区贡献新的插件来扩展 MY_QBOT 的功能!
+MY_QBOT 采用了灵活的插件系统，允许开发者轻松扩展和定制机器人的功能。
 
-### 如何开发插件(插件系统待完善)
+### 插件结构
 
-1. 在 `plugins` 目录下创建新的 Python 文件。
-2. 实现插件功能,使用装饰器注册命令或事件处理器。
+每个插件都应该是一个独立的 Python 模块，位于 `plugins` 目录下。一个典型的插件结构如下：
 
-插件示例:
+```
+plugins/
+└── ExamplePlugin/
+    ├── __init__.py
+    └── example_plugin.py
+```
 
+### 创建插件
 
-### 插件开发指南（插件系统待完善）
+要创建一个新插件，您需要：
 
+1. 在 `plugins` 目录下创建一个新的文件夹。
+2. 在该文件夹中创建一个主 Python 文件（如 `example_plugin.py`）。
+3. 在主文件中定义一个继承自 `PluginBase` 的类。
+4. 使用 `@PluginBase.register` 装饰器注册您的插件。
 
-我们期待看到您的创意插件!如有任何问题,请随时在 Issues 中提出。
+示例插件代码：
+
+```python
+from app.plugin.plugin_base import PluginBase
+
+@PluginBase.register("example")
+class ExamplePlugin(PluginBase):
+    def __init__(self):
+        super().__init__()
+        self.name = "Example Plugin"
+        self.version = "1.0.0"
+        self.description = "This is an example plugin"
+
+    async def on_message(self, message):
+        # 处理消息的逻辑
+        pass
+
+    async def on_file_upload(self, file_path):
+        # 处理文件上传的逻辑
+        pass
+```
+
+### 插件生命周期
+
+插件有以下生命周期方法：
+
+- `on_load()`: 插件加载时调用
+- `on_enable()`: 插件启用时调用
+- `on_disable()`: 插件禁用时调用
+- `on_unload()`: 插件卸载时调用
+
+### 插件配置
+
+插件可以在 `config/config.json` 文件中进行配置。您可以在插件的 `on_load()` 方法中读取配置。
+
+### 启用和禁用插件
+
+您可以通过修改 `config/config.json` 文件中的 `ENABLED_PLUGINS` 列表来启用或禁用插件。
+
+### 插件命令
+
+插件可以注册自定义命令，这些命令可以通过聊天消息触发。
+
+### 文件处理
+
+插件可以实现 `on_file_upload()` 方法来处理文件上传事件。
+
+更多详细信息和高级用法，请参考我们的插件开发文档（即将推出）。
 
 ## 贡献
 
@@ -172,4 +228,3 @@
 
 ### 一些跟芙芙聊天的日常
 【谁家傻芙芙连9.8和9.11哪个大都分不清】 https://www.bilibili.com/video/BV1TivWeFEot/?share_source=copy_web&vd_source=6f08734cb3a294b6a1e634a3e5b481ca
-
