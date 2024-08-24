@@ -6,7 +6,7 @@ from utils.city_codes import get_city_code, get_city_name
 
 
 WEATHER_BASE_URL = 'https://restapi.amap.com/v3/weather/weatherInfo'
-AMAP_API_KEY = ''
+AMAP_API_KEY = '5366822e47889703d452e600b3ad5f05'
 
 
 async def get_weather(city):

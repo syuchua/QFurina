@@ -9,8 +9,7 @@ from utils.client import client, generate_image, recognize_image, model_config
 from utils.lolicon import fetch_image
 from utils.weather import get_forecast, get_weather
 from rapidfuzz import process, fuzz
-from utils.BingArt import bing_art
-from ..Core.decorators import async_timed, error_handler, rate_limit
+from ..Core.decorators import async_timed, rate_limit
 
 async def call_function(model_name: str, endpoint: str, payload: dict) -> Optional[dict]:
     try:
@@ -32,13 +31,10 @@ async def handle_command_request(user_input):
 
 import re
 
-DRAW_PATTERN = re.compile(r"#draw\s*(.*?)[.!?]")
 VOICE_PATTERN = re.compile(r"#voice\s*(.*?)[.!?]")
 IMAGE_CQ_PATTERN = re.compile(r'\[CQ:image,file=(.+)\]')
 RECOGNIZE_PATTERN = re.compile(r"#recognize\s*(.*)")
 
-@async_timed()
-@error_handler
 @rate_limit(calls=5, period=60)
 async def handle_image_request(user_input):
 
@@ -58,7 +54,7 @@ async def handle_image_request(user_input):
             return image_url
 
     model_name = model_config.get('model')
-    if model_name is None:
+    if model_name is not None and model_name.startswith("gpt"):
         for keyword in DRAW_KEYWORDS:
                 if keyword in user_input:
                     prompt = user_input.replace(keyword, '').strip()
@@ -66,25 +62,7 @@ async def handle_image_request(user_input):
                     if response:
                         return response.get("image_url")
 
-    draw_match = DRAW_PATTERN.search(user_input)
-    if draw_match:
-        prompt = draw_match.group(1).strip()
-        if prompt:
-            try:
-                result = await bing_art.generate_images(prompt)
-                if result['images']:
-                    return result['images'][0]['url']
-                else:
-                    logger.warning("No images generated for prompt: {prompt}")
-                    return None
-            except Exception as e:
-                logger.error(f"Error generating image: {str(e)}")
-                return None
-    
-    return None
 
-@async_timed()
-@error_handler
 async def handle_voice_request(user_input):
     VOICE_KEYWORDS = ["语音回复", "用声音说", "语音说"]
 
