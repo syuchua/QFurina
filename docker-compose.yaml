@@ -36,6 +36,8 @@ services:
       - WS_URLS=["ws://qq_bot:8011/ws"]
     ports:
       - "6099:6099"
+    volumes:
+      - ./napcat:/app/napcat
     restart: always
     depends_on:
       - qq_bot
