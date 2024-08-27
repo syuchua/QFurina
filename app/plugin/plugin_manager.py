@@ -28,7 +28,7 @@ class PluginManager:
                             spec = importlib.util.spec_from_file_location(module_name, os.path.join(plugin_path, filename))
                             module = importlib.util.module_from_spec(spec)
                             spec.loader.exec_module(module)
-                            logger.info(f"已加载模块: {module_name}")
+                            #logger.info(f"已加载模块: {module_name}")
 
                     for plugin_class in PluginBase.plugins.values():
                         plugin_instance = plugin_class()
@@ -62,7 +62,7 @@ class PluginManager:
         try:
             await plugin.on_enable()
             self.enabled_plugins[plugin_name] = plugin
-            logger.info(f"已启用插件: {plugin_name}")
+            logger.debug(f"已启用插件: {plugin_name}")
             return True
         except Exception as e:
             logger.error(f"启用插件 {plugin_name} 时发生错误: {str(e)}")

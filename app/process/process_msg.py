@@ -1,6 +1,8 @@
 # process.py
 import asyncio, random
 from functools import wraps
+
+from ..Core.message_utils import MessageManager
 from ..plugin.plugin_manager import plugin_manager
 from utils.model_request import get_chat_response
 from ..DB.database import db
@@ -57,9 +59,6 @@ def process_chat_message(msg_type):
                 if modified_input is not None:
                     user_input = modified_input
 
-                # 获取时间信息
-                time_str = get_time_info(user_input)
-
                 # 构建消息对象
                 message = {
                     "content": user_input,
@@ -67,8 +66,7 @@ def process_chat_message(msg_type):
                     "username": username,
                     "recipient_id": recipient_id,
                     "context_type": context_type,
-                    "context_id": context_id,
-                    "time_str": time_str
+                    "context_id": context_id
                 }
 
                 # 处理插件消息
@@ -97,6 +95,11 @@ def process_chat_message(msg_type):
                         await handle_command(full_command, msg_type, user_info, send_msg, context_type, context_id)
                         return
 
+                # 使用 MessageManager 创建消息上下文
+                messages, user_input = MessageManager.create_message_context(
+                    user_input, user_id, username, context_type, context_id
+                )
+
                 # 获取最近的消息
                 recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, limit=10)
                 user_in_recent = any(msg['role'] == 'user' and msg['content'].startswith(f"{username}:") for msg in recent_messages)  
@@ -108,16 +111,8 @@ def process_chat_message(msg_type):
                     if len(recent_messages) > 20:
                         recent_messages = recent_messages[-20:]
 
-                system_message_text = "\n".join(config.SYSTEM_MESSAGE.values())
-                if user_id == config.ADMIN_ID:
-                    admin_title = random.choice(config.ADMIN_TITLES)
-                    user_input = f"[impression]这是老爹说的话：{admin_title}: {user_input}"
-                else:
-                    user_input = f"[impression]这不是老爹说的话:{username}: {user_input}"
-                messages = [
-                    {"role": "system", "content": system_message_text},
-                    {"role": "system", "content": time_str}
-                ] + recent_messages + [{"role": "user", "content": user_input}]
+                messages.extend(recent_messages)
+                messages.append({"role": "user", "content": user_input})
 
                 response_text = get_dialogue_response(user_input) if user_id == config.ADMIN_ID else None
                 if response_text is None:
