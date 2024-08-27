@@ -5,6 +5,7 @@ from bson import ObjectId
 from pymongo import MongoClient, ASCENDING
 from ..logger import logger
 from ..Core.config import Config
+from bson import ObjectId
 
 config = Config.get_instance()
 
@@ -145,7 +146,6 @@ class MongoDB:
                 self.delete_message(message['_id'])
         except Exception as e:
             logger.error(f"Error deleting messages: {e}")
-
     def get_message_count(self, start_time=None, end_time=None, user_id=None, context_type=None, context_id=None):
         try:
             messages_collection = self.get_collection('messages')
