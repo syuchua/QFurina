@@ -1,6 +1,4 @@
-import os
-import aiohttp
-import json
+import os, json
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 from app.logger import logger
@@ -28,7 +26,14 @@ class PluginBase(ABC):
         self.register_name = getattr(self.__class__, 'register_name', self.name.lower().replace(' ', '_'))
         self.plugin_dir = os.path.dirname(os.path.abspath(self.__class__.__module__))
         self.config_file = os.path.join(self.plugin_dir, 'config.json')
+        self.ensure_config()
         self.load_config()
+
+    def ensure_config(self):
+        """确保插件配置文件存在"""
+        if not os.path.exists(self.config_file):
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump({}, f, ensure_ascii=False, indent=4)
 
     def get_plugin_path(self, filename: str) -> str:
         """获取插件文件的完整路径"""
@@ -36,11 +41,9 @@ class PluginBase(ABC):
 
     def load_config(self):
         """加载插件配置"""
-        if os.path.exists(self.config_file):
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                self.config = json.load(f)
-        else:
-            self.config = {}
+
+        with open(self.config_file, 'r', encoding='utf-8') as f:
+            self.config = json.load(f)
 
     def save_config(self):
         """保存插件配置"""

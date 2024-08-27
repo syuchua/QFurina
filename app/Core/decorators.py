@@ -13,8 +13,6 @@ def error_handler(func):
         except Exception as e:
             错误消息 = f"函数 {func.__name__} 执行出错: {str(e)}"
             logger.error(错误消息)
-            # 这里可以添加错误通知逻辑，比如发送邮件或推送消息
-            # 例如: await send_notification(错误消息)
             raise
     return wrapper
 
