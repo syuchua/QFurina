@@ -1,8 +1,8 @@
-# MY_QBOT - QQ机器人项目
+# QFurina - QQ机器人项目
 
 欢迎来到MY_QBOT项目！这是一个基于Python的QQ机器人后端服务,提供了一系列自动化和交互功能。
 
-## MY_QBOT功能列表
+## QFurina功能列表
   1. AI聊天,角色扮演
   2. 群聊管理
   3. 从pixiv获取并发送图片
