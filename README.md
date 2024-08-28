@@ -22,8 +22,8 @@
 
 1. 克隆项目并进入目录:
    ```
-   git clone -b dev https://github.com/syuchua/MY_QBOT.git
-   cd MY_QBOT && mkdir data/music
+   git clone -b dev https://github.com/syuchua/QFurina.git
+   cd QFurina && mkdir data && cd data && mkdir music && cd ../
    ```
 
 2. 编辑配置文件:
@@ -47,8 +47,8 @@
 
 1. 克隆项目:
    ```
-   git clone -b dev https://github.com/syuchua/MY_QBOT.git
-   cd MY_QBOT && mkdir data/music
+   git clone -b dev https://github.com/syuchua/QFurina.git
+   cd Qfurina && mkdir data && cd data && mkdir music && cd ../
    ```
 
 2. 创建虚拟环境 (可选):
@@ -128,7 +128,7 @@
 
 ## 插件系统
 
-MY_QBOT 采用了灵活的插件系统，允许开发者轻松扩展和定制机器人的功能。
+QFurina 采用了灵活的插件系统，允许开发者轻松扩展和定制机器人的功能。
 
 ### 插件结构
 
