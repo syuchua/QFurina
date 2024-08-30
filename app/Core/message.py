@@ -10,6 +10,16 @@ from app.Core.onebotv11 import (
 )
 
 
+def is_at_bot(content, self_id):
+    # 匹配带有或不带有 name 的 CQ 码
+    at_bot_pattern = r'\[CQ:at,qq={}\]|\[CQ:at,qq={},name=[^\]]+\]'.format(self_id, self_id)
+    return bool(re.search(at_bot_pattern, content))
+
+def remove_at_bot(content, self_id):
+    # 移除带有或不带有 name 的 CQ 码
+    at_bot_pattern = r'\[CQ:at,qq={}(?:,name=[^\]]+)?\]'.format(self_id)
+    return re.sub(at_bot_pattern, '', content).strip()
+
 
 @process_chat_message('private')
 async def process_private_message(event: PrivateMessageEvent):
@@ -28,13 +38,13 @@ async def process_group_message(event: GroupMessageEvent):
     block_id = config.BLOCK_ID
     contains_nickname = any(nickname in content for nickname in config.NICKNAMES)
     is_sender_blocked = user_id in block_id
-    at_bot_message = r'\[CQ:at,qq={},name=[^\]]+\]'.format(config.SELF_ID)
-    is_at_bot = re.search(at_bot_message, content)
+    #at_bot_message = r'\[CQ:at,qq={},name=[^\]]+\]'.format(config.SELF_ID)
+    is_at_bot = is_at_bot(content, config.SELF_ID)
 
     is_restart_command = content.strip().lower().startswith('/restart')
 
     if is_at_bot:
-        content = re.sub(at_bot_message, '', content).strip()
+        content = remove_at_bot(content, config.SELF_ID)
 
     if (contains_nickname or is_at_bot or is_restart_command) and not is_sender_blocked:
         if is_restart_command:
