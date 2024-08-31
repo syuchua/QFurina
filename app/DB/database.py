@@ -154,7 +154,7 @@ class MongoDB:
             logger.info(f"Attempting to delete {len(messages_list)} messages")
             deleted_ids = set()
             for message in messages_list:
-                logger.info(f"Processing message: {message}")
+                #logger.info(f"Processing message: {message}")
                 if isinstance(message, dict) and '_id' in message:
                     if message['_id'] not in deleted_ids:
                         self.delete_message(message)
