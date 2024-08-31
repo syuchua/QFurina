@@ -12,7 +12,8 @@ from commands.plugin import (
     handle_disable_plugin,
     handle_list_plugins,
     handle_reload_plugin,
-    handle_plugin_info
+    handle_plugin_info,
+    handle_plugin_download_command
 )
 
 async def handle_command(command, msg_type, user_info, send_msg, context_type, context_id):
