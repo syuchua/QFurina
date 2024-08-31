@@ -107,8 +107,9 @@ class MongoDB:
                 user_input = msg.get('user_input', '(no user input)')
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
-                    messages_list.append({"role": "user", "content": user_input})
-                    messages_list.append({"role": "assistant", "content": response_text})
+                    msg["_id"] = str(msg["_id"])
+                    messages_list.append({"_id": msg["_id"], "role": "user", "content": user_input})
+                    messages_list.append({"_id": msg["_id"], "role": "assistant", "content": response_text})
 
             return messages_list
         except Exception as e:
