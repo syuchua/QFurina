@@ -208,4 +208,3 @@ async def handle_web_search(query):
 #             return None
 
 music_handler = MusicHandler()
-# weather_handler = WeatherHandler()
