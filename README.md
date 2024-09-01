@@ -1,8 +1,8 @@
-# MY_QBOT - QQ机器人项目
+# QFurina - QQ机器人项目
 
 欢迎来到MY_QBOT项目！这是一个基于Python的QQ机器人后端服务,提供了一系列自动化和交互功能。
 
-## MY_QBOT功能列表
+## QFurina功能列表
   1. AI聊天,角色扮演
   2. 群聊管理
   3. 从pixiv获取并发送图片
@@ -22,8 +22,8 @@
 
 1. 克隆项目并进入目录:
    ```
-   git clone -b dev https://github.com/syuchua/MY_QBOT.git
-   cd MY_QBOT && mkdir data/music
+   git clone -b dev https://github.com/syuchua/QFurina.git
+   cd QFurina && mkdir data && cd data && mkdir music && cd ../
    ```
 
 2. 编辑配置文件:
@@ -47,8 +47,8 @@
 
 1. 克隆项目:
    ```
-   git clone -b dev https://github.com/syuchua/MY_QBOT.git
-   cd MY_QBOT && mkdir data/music
+   git clone -b dev https://github.com/syuchua/QFurina.git
+   cd Qfurina && mkdir data && cd data && mkdir music && cd ../
    ```
 
 2. 创建虚拟环境 (可选):
@@ -128,7 +128,7 @@
 
 ## 插件系统
 
-MY_QBOT 采用了灵活的插件系统，允许开发者轻松扩展和定制机器人的功能。
+QFurina 采用了灵活的插件系统，允许开发者轻松扩展和定制机器人的功能。
 
 ### 插件结构
 
