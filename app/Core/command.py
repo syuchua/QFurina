@@ -12,7 +12,8 @@ from commands.plugin import (
     handle_disable_plugin,
     handle_list_plugins,
     handle_reload_plugin,
-    handle_plugin_info
+    handle_plugin_info,
+    handle_plugin_download_command
 )
 
 async def handle_command(command, msg_type, user_info, send_msg, context_type, context_id):
@@ -69,6 +70,8 @@ async def handle_command(command, msg_type, user_info, send_msg, context_type, c
                     await send_msg(msg_type, user_info["recipient_id"], "请在 clear 后输入一个有效的数字。")
                     return
             await handle_clear_history_command(msg_type, user_info, context_type, context_id, send_msg, count)
+        elif main_command == 'plugin':
+            await handle_plugin_download_command(msg_type, user_info, args, send_msg)
         else:
             raise ValueError(f"未知的命令: {main_command}")
     except ValueError as e:

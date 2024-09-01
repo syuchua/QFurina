@@ -1,15 +1,14 @@
 # function_calling.py
 import os, re, random
 from typing import Optional, List
-from utils.city_codes import CITY_CODES
 from utils.search import get_github_repo_info, get_webpage_content, web_search
 from app.logger import logger
 from utils.voice_service import generate_voice
 from utils.client import client, generate_image, recognize_image, model_config
 from utils.lolicon import fetch_image
-from utils.weather import get_forecast, get_weather
-from rapidfuzz import process, fuzz
 from ..Core.decorators import async_timed, rate_limit
+
+is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
 
 async def call_function(model_name: str, endpoint: str, payload: dict) -> Optional[dict]:
     try:
@@ -20,7 +19,7 @@ async def call_function(model_name: str, endpoint: str, payload: dict) -> Option
         return None
 
 async def handle_command_request(user_input):
-    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown|enable_plugin|disable_plugin|list_plugins|reload_plugin)(?:\s+(.+))?')
+    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown|enable_plugin|disable_plugin|list_plugins|reload_plugin|plugin)(?:\s+(.+))?')
     match = COMMAND_PATTERN.match(user_input)
     if match:
         command = match.group(1)
@@ -72,14 +71,14 @@ async def handle_voice_request(user_input):
             voice_text = user_input.split(keyword, 1)[1].strip()
             audio_filename = await generate_voice(voice_text)
             if audio_filename:
-                return f"http://localhost:4321/data/voice/{audio_filename}"           
+                return f"http://my_qbot:4321/data/voice/{audio_filename}" if is_docker else f"http://localhost:4321/data/voice/{audio_filename}"           
 
     voice_match = VOICE_PATTERN.search(user_input)
     if voice_match:
         voice_text = voice_match.group(1).strip()
         audio_filename = await generate_voice(voice_text)
         if audio_filename:
-            return f"http://localhost:4321/data/voice/{audio_filename}"
+            return f"http://my_qbot:4321/data/voice/{audio_filename}" if is_docker else f"http://localhost:4321/data/voice/{audio_filename}"
     
     return None
 
@@ -115,7 +114,7 @@ class MusicHandler:
             if keyword in user_input:
                 music_name = random.choice(self.MUSIC_FILES)
                 if music_name:
-                    return f"http://localhost:4321/data/music/{music_name}"
+                    return f"http://my_qbot:4321/data/music/{music_name}" if is_docker else f"http://localhost:4321/data/music/{music_name}"
 
         # 检查是否是点歌请求
         if "点歌" in user_input:
@@ -124,7 +123,7 @@ class MusicHandler:
             matched_songs = [name for name in self.MUSIC_INFO.keys() if song_name in name]
             if matched_songs:
                 chosen_song = matched_songs[0]  # 选择第一个匹配的歌曲
-                return f"http://localhost:4321/data/music/{self.MUSIC_INFO[chosen_song]}"
+                return f"http://my_qbot:4321/data/music/{self.MUSIC_INFO[chosen_song]}" if is_docker else f"http://localhost:4321/data/music/{self.MUSIC_INFO[chosen_song]}"
             else:
                 return f"抱歉，没有找到歌曲 '{song_name}'。"
 
@@ -153,60 +152,60 @@ async def handle_web_search(query):
     return enhanced_result
 
 
-class WeatherHandler:
-    @staticmethod
-    async def handle_request(user_input: str) -> Optional[str]:
-        WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报']
+# class WeatherHandler:
+#     @staticmethod
+#     async def handle_request(user_input: str) -> Optional[str]:
+#         WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报']
         
-        if any(keyword in user_input for keyword in WEATHER_KEYWORDS):
-            city = WeatherHandler.extract_city(user_input)
-            if not city:
-                return "抱歉，我没有识别出您想查询的城市。请直接提供城市名，例如'北京天气'。"
+#         if any(keyword in user_input for keyword in WEATHER_KEYWORDS):
+#             city = WeatherHandler.extract_city(user_input)
+#             if not city:
+#                 return "抱歉，我没有识别出您想查询的城市。请直接提供城市名，例如'北京天气'。"
 
-            try:
-                current_weather = await get_weather(city)
-                forecast = await get_forecast(city)
-                return f"{current_weather}\n\n{forecast}"
-            except Exception as e:
-                logger.error(f"Error in handle_weather_request: {e}", exc_info=True)
-                return f"获取{city}的天气信息时发生错误，请稍后再试。"
+#             try:
+#                 current_weather = await get_weather(city)
+#                 forecast = await get_forecast(city)
+#                 return f"{current_weather}\n\n{forecast}"
+#             except Exception as e:
+#                 logger.error(f"Error in handle_weather_request: {e}", exc_info=True)
+#                 return f"获取{city}的天气信息时发生错误，请稍后再试。"
 
-        return None
+#         return None
 
-    @staticmethod
-    def extract_city(text: str) -> Optional[str]:
-        WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报']
+#     @staticmethod
+#     def extract_city(text: str) -> Optional[str]:
+#         WEATHER_KEYWORDS = ['天气', '气温', '温度', '下雨', '阴天', '晴天', '多云', '预报']
         
-        logger.debug(f"Extracting city from: {text}")
+#         logger.debug(f"Extracting city from: {text}")
         
-        # 去除常见的无关词
-        for keyword in WEATHER_KEYWORDS:
-            text = text.replace(keyword, '')
+#         # 去除常见的无关词
+#         for keyword in WEATHER_KEYWORDS:
+#             text = text.replace(keyword, '')
         
-        logger.debug(f"Text after removing keywords: {text}")
+#         logger.debug(f"Text after removing keywords: {text}")
         
-        try:
-            # 使用模糊匹配找到最可能的城市名
-            result = process.extractOne(text, CITY_CODES.keys(), scorer=fuzz.partial_ratio)
+#         try:
+#             # 使用模糊匹配找到最可能的城市名
+#             result = process.extractOne(text, CITY_CODES.keys(), scorer=fuzz.partial_ratio)
             
-            logger.debug(f"Fuzzy matching result: {result}")
+#             logger.debug(f"Fuzzy matching result: {result}")
             
-            if result and len(result) >= 2:
-                city, score = result[0], result[1]
-                logger.debug(f"Extracted city: {city}, match score: {score}")
+#             if result and len(result) >= 2:
+#                 city, score = result[0], result[1]
+#                 logger.debug(f"Extracted city: {city}, match score: {score}")
                 
-                # 如果匹配度低于某个阈值，认为没有找到有效的城市名
-                if score < 60:
-                    logger.info(f"No valid city name found. Best match was '{city}' with score {score}")
-                    return None
+#                 # 如果匹配度低于某个阈值，认为没有找到有效的城市名
+#                 if score < 60:
+#                     logger.info(f"No valid city name found. Best match was '{city}' with score {score}")
+#                     return None
                 
-                return city
-            else:
-                logger.info("No city match found")
-                return None
-        except Exception as e:
-            logger.error(f"Error in extract_city: {e}", exc_info=True)
-            return None
+#                 return city
+#             else:
+#                 logger.info("No city match found")
+#                 return None
+#         except Exception as e:
+#             logger.error(f"Error in extract_city: {e}", exc_info=True)
+#             return None
 
 music_handler = MusicHandler()
-weather_handler = WeatherHandler()
+# weather_handler = WeatherHandler()
