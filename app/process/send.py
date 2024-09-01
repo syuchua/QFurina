@@ -1,5 +1,5 @@
 # send.py
-import asyncio, aiohttp
+import asyncio, aiohttp, os
 from ..Core.ws_decorators import select_connection_method
 from ..Core.decorators import error_handler, rate_limit
 from utils.voice_service import generate_voice
@@ -35,10 +35,11 @@ async def send_http_request(url, json):
 #@rate_limit(calls=10, period=60) # 限速装饰器，每分钟10条
 async def send_msg(msg_type, number, msg, use_voice=False, is_error_message=False): # 使用限速器
     if use_voice:
+        is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
         try:
             audio_filename = await generate_voice(msg)
             if audio_filename:
-                msg = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
+                msg = f"[CQ:record,file=http://my_qbot:4321/data/voice/{audio_filename}]" if is_docker else f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
         except asyncio.TimeoutError:
             msg = "语音合成超时，请稍后再试。"
 

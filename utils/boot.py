@@ -29,7 +29,7 @@ class FlaskServer:
         self.is_running = False
 
     def start(self):
-        self.server = make_server('127.0.0.1', 4321, self.app)
+        self.server = make_server('0.0.0.0', 4321, self.app)
         self.server.timeout = 1
         self.is_running = True
         self.thread = threading.Thread(target=self.run)
@@ -166,6 +166,6 @@ def shutdown_handler(sig, frame):
     logger.info(f"接收到信号 {sig}, 正在关闭程序...")
     shutdown_event.set()
     # 给主循环一些时间来完成当前任务
-    time.sleep(2)
+    time.sleep(5)
     # 强制退出
     os._exit(0)

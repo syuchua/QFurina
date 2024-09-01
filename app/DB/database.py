@@ -5,7 +5,6 @@ from bson import ObjectId
 from pymongo import MongoClient, ASCENDING
 from ..logger import logger
 from ..Core.config import Config
-from bson import ObjectId
 
 config = Config.get_instance()
 
@@ -47,6 +46,7 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error inserting/updating user info: {e}")
 
+
     def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id):
         try:
             if response_text:
@@ -63,6 +63,8 @@ class MongoDB:
                 messages_collection.insert_one(message_data)
         except Exception as e:
             logger.error(f"Error inserting chat message: {e}")
+
+    
 
     def get_recent_messages(self, user_id, context_type, context_id, limit=10):
         try:
@@ -81,9 +83,9 @@ class MongoDB:
                 user_input = msg.get('user_input', '(no user input)')
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
-                    msg["_id"] = str(msg["_id"])
-                    messages_list.append({"role": "user", "content": user_input})
-                    messages_list.append({"role": "assistant", "content": response_text})
+                    msg_id = str(msg["_id"])
+                    messages_list.append({"_id": msg_id, "role": "user", "content": user_input})
+                    messages_list.append({"_id": msg_id, "role": "assistant", "content": response_text})
 
             return messages_list
         except Exception as e:
@@ -105,13 +107,15 @@ class MongoDB:
                 user_input = msg.get('user_input', '(no user input)')
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
-                    messages_list.append({"role": "user", "content": user_input})
-                    messages_list.append({"role": "assistant", "content": response_text})
+                    msg["_id"] = str(msg["_id"])
+                    messages_list.append({"_id": msg["_id"], "role": "user", "content": user_input})
+                    messages_list.append({"_id": msg["_id"], "role": "assistant", "content": response_text})
 
             return messages_list
         except Exception as e:
             logger.error(f"Error getting user historical messages: {e}")
             return []
+
 
     def clean_old_messages(self, days=1, exempt_user_ids=None, exempt_context_ids=None):
         try:
@@ -131,21 +135,36 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error cleaning old messages: {e}")
 
-    def delete_message(self, message_id):
+    def delete_message(self, message):
         try:
             messages_collection = self.get_collection('messages')
-            result = messages_collection.delete_one({'_id': ObjectId(message_id)})
-            if result.deleted_count == 1:
-                logger.info(f"Deleted message with _id {message_id}")
+            if '_id' in message:
+                result = messages_collection.delete_one({'_id': ObjectId(message['_id'])})
+                if result.deleted_count == 1:
+                    logger.info(f"Deleted message with _id: {message['_id']}")
+                else:
+                    logger.warning(f"No message found with _id: {message['_id']}")
+            else:
+                logger.warning(f"Message without _id: {message}")
         except Exception as e:
             logger.error(f"Error deleting message: {e}")
 
     def delete_messages(self, messages_list):
         try:
+            logger.info(f"Attempting to delete {len(messages_list)} messages")
+            deleted_ids = set()
             for message in messages_list:
-                self.delete_message(message['_id'])
+                #logger.info(f"Processing message: {message}")
+                if isinstance(message, dict) and '_id' in message:
+                    if message['_id'] not in deleted_ids:
+                        self.delete_message(message)
+                        deleted_ids.add(message['_id'])
+                else:
+                    logger.warning(f"Invalid message format: {message}")
+            logger.info(f"Finished deleting messages. Deleted {len(deleted_ids)} unique messages.")
         except Exception as e:
             logger.error(f"Error deleting messages: {e}")
+
     def get_message_count(self, start_time=None, end_time=None, user_id=None, context_type=None, context_id=None):
         try:
             messages_collection = self.get_collection('messages')

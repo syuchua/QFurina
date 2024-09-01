@@ -1,3 +1,5 @@
+import os,sys,subprocess
+from git import Repo
 from app.plugin.plugin_manager import plugin_manager
 from app.Core.decorators import admin_only
 from app.logger import logger
@@ -77,3 +79,52 @@ async def handle_plugin_info(msg_type, user_info, plugin_name, send_msg):
     except Exception as e:
         logger.error(f"获取插件 {plugin_name} 信息时发生错误: {str(e)}")
         await send_msg(msg_type, user_info['recipient_id'], f"获取插件 {plugin_name} 信息时发生错误")
+
+
+async def download_and_install_plugin(repo_url: str, plugins_dir: str = "plugins"):
+    """
+    下载GitHub仓库到插件目录，并安装依赖（如果有requirements.txt）
+    """
+    try:
+        # 从URL中提取仓库名
+        repo_name = repo_url.split("/")[-1].replace(".git", "")
+        plugin_path = os.path.join(plugins_dir, repo_name)
+
+        # 克隆或更新仓库
+        if os.path.exists(plugin_path):
+            logger.info(f"更新插件: {repo_name}")
+            repo = Repo(plugin_path)
+            origin = repo.remotes.origin
+            origin.pull()
+        else:
+            logger.info(f"下载插件: {repo_name}")
+            Repo.clone_from(repo_url, plugin_path)
+
+        # 检查并安装依赖
+        requirements_file = os.path.join(plugin_path, "requirements.txt")
+        if os.path.exists(requirements_file):
+            logger.info(f"安装 {repo_name} 的依赖")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_file])
+
+        logger.info(f"插件 {repo_name} 安装成功")
+        return f"插件 {repo_name} 已成功下载并安装"
+    except Exception as e:
+        logger.error(f"插件安装失败: {str(e)}")
+        return f"插件安装失败: {str(e)}"
+
+@admin_only
+async def handle_plugin_download_command(msg_type, user_info, args, send_msg):
+    """
+    处理插件下载命令
+    """
+    if not args:
+        await send_msg(msg_type, user_info["recipient_id"], "使用方法: /plugin <GitHub仓库URL>")
+        return
+
+    repo_url = args.strip()
+    if not repo_url.startswith("https://github.com/"):
+        await send_msg(msg_type, user_info["recipient_id"], "请提供有效的GitHub仓库URL")
+        return
+
+    result = await download_and_install_plugin(repo_url)
+    await send_msg(msg_type, user_info["recipient_id"], result)

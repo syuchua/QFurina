@@ -10,7 +10,6 @@ from app.Core.onebotv11 import (
 )
 
 
-
 @process_chat_message('private')
 async def process_private_message(event: PrivateMessageEvent):
     user_id = get_user_id(event)
@@ -28,13 +27,14 @@ async def process_group_message(event: GroupMessageEvent):
     block_id = config.BLOCK_ID
     contains_nickname = any(nickname in content for nickname in config.NICKNAMES)
     is_sender_blocked = user_id in block_id
-    at_bot_message = r'\[CQ:at,qq={},name=[^\]]+\]'.format(config.SELF_ID)
+    at_bot_message = r'\[CQ:at,qq={0}.*?\]'.format(config.SELF_ID)
     is_at_bot = re.search(at_bot_message, content)
-
     is_restart_command = content.strip().lower().startswith('/restart')
 
     if is_at_bot:
+        logger.info(f"\nDetected at_bot message: {content}\n")
         content = re.sub(at_bot_message, '', content).strip()
+        logger.info(f"\nProcessed at_bot message: {content}\n")
 
     if (contains_nickname or is_at_bot or is_restart_command) and not is_sender_blocked:
         if is_restart_command:

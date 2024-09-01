@@ -40,6 +40,7 @@ async def upload_file_for_plugin(file_path, file_type='image'):
         os.makedirs(dest_dir, exist_ok=True)
         dest_path = os.path.join(dest_dir, filename)
         os.rename(file_path, dest_path)
+        is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
         
         # 调用插件的on_file_upload方法
         upload_result = await plugin_manager.call_on_file_upload(dest_path)
@@ -49,6 +50,6 @@ async def upload_file_for_plugin(file_path, file_type='image'):
             return upload_result
         
         # 否则使用默认的URL
-        return f'http://localhost:4321/data/{file_type}/{filename}'
+        return f'http://my_qbot:4321/data/{file_type}/{filename}' if is_docker else f'http://localhost:4321/data/{file_type}/{filename}'
     else:
         return None

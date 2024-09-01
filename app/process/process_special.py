@@ -1,11 +1,11 @@
 # process_special.py
-import re, asyncio
+import re, asyncio, os
 from ..DB.database import db
 from ..Core.decorators import async_timed, error_handler
 from ..logger import logger
 from ..Core.function_calling import (
-    weather_handler, handle_image_recognition, handle_image_request, 
-    handle_web_search, handle_voice_request, music_handler
+    handle_web_search, handle_image_recognition, handle_image_request, 
+    handle_voice_request, music_handler
 )
 from .send import send_msg
 from ..process.split_message import split_message
@@ -14,7 +14,7 @@ from utils.voice_service import generate_voice
 class SpecialHandler:
     def __init__(self):
         self.handlers = {
-            r'(天气|气温|温度|下雨|阴天|晴天|多云|预报)': self.handle_weather_request,
+            #r'(天气|气温|温度|下雨|阴天|晴天|多云|预报)': self.handle_weather_request,
             r'#voice': self.handle_voice_synthesis,
             r'#recognize': self.handle_image_recognition_request,
             r'#search': self.handle_search_request,
@@ -55,22 +55,23 @@ class SpecialHandler:
 
         return False, None
 
-    async def handle_weather_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
-        try:
-            weather_response = await weather_handler.handle_request(response_text)
-            if weather_response:
-                await send_msg(msg_type, recipient_id, weather_response)
-                db.insert_chat_message(user_id, response_text, weather_response, context_type, context_id)
-                return True, weather_response
-            else:
-                await send_msg(msg_type, recipient_id, "抱歉，无法获取天气信息。")
-                return True, "无法获取天气信息"
-        except Exception as e:
-            logger.error(f"Error in weather request handling: {e}", exc_info=True)
-            await send_msg(msg_type, recipient_id, "获取天气信息时发生错误，请稍后再试。")
-            return True, "天气信息获取错误"
+    # async def handle_weather_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
+    #     try:
+    #         weather_response = await weather_handler.handle_request(response_text)
+    #         if weather_response:
+    #             await send_msg(msg_type, recipient_id, weather_response)
+    #             db.insert_chat_message(user_id, response_text, weather_response, context_type, context_id)
+    #             return True, weather_response
+    #         else:
+    #             await send_msg(msg_type, recipient_id, "抱歉，无法获取天气信息。")
+    #             return True, "无法获取天气信息"
+    #     except Exception as e:
+    #         logger.error(f"Error in weather request handling: {e}", exc_info=True)
+    #         await send_msg(msg_type, recipient_id, "获取天气信息时发生错误，请稍后再试。")
+    #         return True, "天气信息获取错误"
 
     async def handle_voice_synthesis(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
+        is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
         voice_pattern = re.compile(r"#voice\s*(.*)", re.DOTALL)
         voice_match = voice_pattern.search(response_text)
         if voice_match:
@@ -81,7 +82,7 @@ class SpecialHandler:
             try:
                 audio_filename = await asyncio.wait_for(generate_voice(voice_text), timeout=10)
                 if audio_filename:
-                    response = f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
+                    response = f"[CQ:record,file=http://my_qbot:4321/data/voice/{audio_filename}]" if is_docker else f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
                     await send_msg(msg_type, recipient_id, response)
                     db.insert_chat_message(user_id, response_text, response, context_type, context_id)
                     return True, response
@@ -159,17 +160,17 @@ class SpecialHandler:
             return True, response
         return False, None
 
-    @staticmethod
-    def clean_draw_prompt(prompt):
-        prompt = prompt.replace('\n', ' ')
-        prompt = re.sub(r'\[.*?\]', '', prompt)
-        prompt = prompt.replace('()', '')
-        prompt = re.sub(r'[,，。.…]+', ' ', prompt)
-        prompt = re.sub(r'\s+', ',', prompt)
-        prompt = ''.join([char for char in prompt if not SpecialHandler.is_chinese(char)])
-        prompt = prompt.strip()
-        prompt = re.sub(r'^[,.。... ! ?\s]+|[,.。... ! ?\s]+$', '', prompt)
-        return prompt
+    # @staticmethod
+    # def clean_draw_prompt(prompt):
+    #     prompt = prompt.replace('\n', ' ')
+    #     prompt = re.sub(r'\[.*?\]', '', prompt)
+    #     prompt = prompt.replace('()', '')
+    #     prompt = re.sub(r'[,，。.…]+', ' ', prompt)
+    #     prompt = re.sub(r'\s+', ',', prompt)
+    #     prompt = ''.join([char for char in prompt if not SpecialHandler.is_chinese(char)])
+    #     prompt = prompt.strip()
+    #     prompt = re.sub(r'^[,.。... ! ?\s]+|[,.。... ! ?\s]+$', '', prompt)
+    #     return prompt
 
     @staticmethod
     def is_chinese(char):
