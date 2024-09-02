@@ -10,7 +10,6 @@ services:
       - ./config:/app/config
       - ./data:/app/data
       - ./logs:/app/app/logs
-      - ./plugins:/app/plugins
     environment:
       - IS_DOCKER=true
       - MONGO_URI=mongodb://mongo:27017
