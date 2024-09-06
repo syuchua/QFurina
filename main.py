@@ -9,14 +9,13 @@ console = Console()
 
 asciiart = r"""
 
- ____    ____   ____  ____               ___       ______       ___     _________  
-|_   \  /   _| |_  _||_  _|            .'   `.    |_   _ \    .'   `.  |  _   _  | 
-  |   \/   |     \ \  / /             /  .-.  \     | |_) |  /  .-.  \ |_/ | | \_| 
-  | |\  /| |      \ \/ /              | |   | |     |  __'.  | |   | |     | |     
- _| |_\/_| |_     _|  |_     _______  \  `-'  \_   _| |__) | \  `-'  /    _| |_    
-|_____||_____|   |______|   |_______|  `.___.\__| |_______/   `.___.'    |_____|  
+   ____    ______              _              
+  / __ \  / ____/__  __ _____ (_)____   ____ _
+ / / / / / /_   / / / // ___// // __ \ / __ `/
+/ /_/ / / __/  / /_/ // /   / // / / // /_/ / 
+\___\_\/_/     \__,_//_/   /_//_/ /_/ \__,_/  
 
-
+                                                                                                                                                                    
 """
 
 rainbow_colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
@@ -28,7 +27,8 @@ if __name__ == '__main__':
     #sys.stdout.reconfigure(encoding='utf-8')  # 设置编码为 utf-8
     for i, line in enumerate(asciiart.splitlines()):
         print(f"[{rainbow_colors[i % len(rainbow_colors)]}]{line}[/]")
-    print("⭐️开源地址: https://github.com/syuchua/MY_QBOT\n")
+    print("⭐️开源地址: https://github.com/syuchua/QFurina\n")
+    print("📖文档地址：https://qfurina.yuchu.me\n")
 
     # 注册信号处理程序
     signal.signal(signal.SIGINT, shutdown_handler)
