@@ -18,6 +18,8 @@
 
 ## 部署指南
 
+### [文档站](https://qfurina.yuchu.me)
+
 ### Docker部署 (已集成[napcat](https://github.com/NapNeko/NapCatQQ)和mongodb数据库)
 
 1. 克隆项目并进入目录:
