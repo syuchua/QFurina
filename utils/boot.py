@@ -4,7 +4,7 @@ from app.process.task_manger import task_manager
 from app.Core.config import config
 from app.logger import clean_old_logs, logger
 from app.DB.database import MongoDB
-from app.Core.message import process_group_message, process_private_message
+from app.Core.message import process_group_message, process_private_message, process_telegram_message
 from commands.reset import session_timeout_check
 from app.Core.decorators import error_handler
 from utils.receive import close_connection, rev_msg, start_http_server, start_reverse_ws
@@ -13,8 +13,9 @@ from utils.voice_service import clean_voice_directory
 from utils.file import app
 from wsgiref.simple_server import make_server
 from app.plugin.plugin_manager import plugin_manager
-from app.Core.onebotv11 import EventType, is_group_message, is_private_message
-
+from app.Core.adapter.onebotv11 import EventType, is_group_message, is_private_message
+from app.Core.adapter.tgbot import TelegramBot
+from functools import partial
 
 BOT_ACTIVE = threading.Event()
 BOT_ACTIVE.set()  # 默认为激活状态
@@ -70,6 +71,8 @@ async def process_message(rev_message):
                 logger.debug("Received heartbeat")
             elif rev_message['meta_event_type'] == 'lifecycle' and rev_message['sub_type'] == 'connect':
                 logger.info("Connection established")
+    elif 'message' in rev_message:
+        await asyncio.create_task(process_telegram_message(rev_message))
     else:
         logger.warning(f"Received unexpected message format: {rev_message}")
 
@@ -77,6 +80,8 @@ async def process_message(rev_message):
 
 @error_handler
 async def message_loop():
+    """消息处理循环"""
+    
     logger.info("消息处理循环已启动...")
     while not shutdown_event.is_set():
         try:
@@ -99,15 +104,15 @@ def schedule_jobs():
     exempt_groups = []
 
     # 定时开关机
-    schedule.every().day.at(config.DISABLE_TIME).do(asyncio.run, shutdown_gracefully())
-    schedule.every().day.at(config.ENABLE_TIME).do(asyncio.run, restart_main_loop())
+    schedule.every().day.at(config.DISABLE_TIME).do(shutdown_gracefully)
+    schedule.every().day.at(config.ENABLE_TIME).do(restart_main_loop)
 
     # 定时清理任务
-    schedule.every().day.at("02:00").do(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups)
-    schedule.every().day.at("03:00").do(clean_old_logs, days=14)
+    schedule.every().day.at("02:00").do(partial(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups))
+    schedule.every().day.at("03:00").do(partial(clean_old_logs, days=14))
 
     voice_directory = os.path.join(os.getcwd(), config.AUDIO_SAVE_PATH)
-    schedule.every(60).minutes.do(clean_voice_directory, directory=voice_directory)
+    schedule.every(60).minutes.do(partial(clean_voice_directory, directory=voice_directory))
     
     while not shutdown_event.is_set():
         try:
@@ -116,17 +121,34 @@ def schedule_jobs():
             logger.error(f"Error in scheduled job: {e}", exc_info=True)
         time.sleep(5)
 
-async def shutdown_gracefully():
+def shutdown_gracefully():
     """进入睡眠状态"""
     logger.info("开始执行睡眠...")
     BOT_ACTIVE.clear()
     logger.info("机器人已进入睡眠状态")
 
-async def restart_main_loop():
+def restart_main_loop():
     """从睡眠状态唤醒"""
     logger.info("开始唤醒机器人...")
     BOT_ACTIVE.set()
     logger.info("机器人已唤醒，恢复正常运行")
+
+# 处理 Telegram 更新
+async def handle_telegram_updates(bot):
+    offset = 0
+    while not shutdown_event.is_set():
+        try:
+            updates = await bot.get_updates(offset=offset, timeout=30)
+            for update in updates:
+                offset = update['update_id'] + 1
+                if 'message' in update:
+                    await task_manager.add_task(process_message(update['message']))
+        except Exception as e:
+            logger.error(f"Error in handle_telegram_updates: {e}")
+        await asyncio.sleep(1)
+
+def is_telegram_enabled():
+    return config.ENABLE_TELEGRAM and config.TELEGRAM_BOT_TOKEN
 
 # 异步任务管理器
 async def task():
@@ -149,6 +171,10 @@ async def task():
 
         if BOT_ACTIVE.is_set():
             tasks.append(message_loop())
+
+        if is_telegram_enabled():
+            tg_bot = TelegramBot(config.TELEGRAM_BOT_TOKEN)
+            tasks.append(handle_telegram_updates(tg_bot))
 
         await asyncio.gather(*tasks)
 

@@ -32,6 +32,7 @@ class MongoDB:
             
             messages_collection = self.get_collection('messages')
             messages_collection.create_index([('timestamp', ASCENDING)])
+            messages_collection.create_index([('user_id', ASCENDING), ('context_type', ASCENDING), ('context_id', ASCENDING), ('platform', ASCENDING)])
         except Exception as e:
             logger.error(f"Error ensuring indexes: {e}")
 
@@ -47,7 +48,7 @@ class MongoDB:
             logger.error(f"Error inserting/updating user info: {e}")
 
 
-    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id):
+    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id, platform):
         try:
             if response_text:
                 messages_collection = self.get_collection('messages')
@@ -57,7 +58,7 @@ class MongoDB:
                     'response_text': response_text,
                     'context_type': context_type,
                     'context_id': context_id,
-                    #'username': username,
+                    'platform': platform,
                     'timestamp': time.time()
                 }
                 messages_collection.insert_one(message_data)
@@ -66,10 +67,12 @@ class MongoDB:
 
     
 
-    def get_recent_messages(self, user_id, context_type, context_id, limit=10):
+    def get_recent_messages(self, user_id, context_type, context_id, platform,limit=10):
         try:
             messages_collection = self.get_collection('messages')
-            query = {"context_type": context_type}
+            query = {"context_type": context_type,
+                     "platform": platform
+                    }
             
             if context_type == 'private':
                 query["user_id"] = user_id

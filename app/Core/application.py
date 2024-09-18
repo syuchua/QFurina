@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Callable, Optional
 
 from .config import Config
-from .onebotv11 import (
+from .adapter.onebotv11 import (
     get_user_id, get_group_id, get_message_content, get_username,
     is_group_message, is_private_message
 )
@@ -92,11 +92,11 @@ class Application:
         return self.db.insert_user_info(user_info)
 
     def insert_chat_message(self, user_id: int, user_input: str, response_text: str, 
-                            context_type: str, context_id: str):
+                            context_type: str, context_id: str, platform: str):
         """
         插入聊天消息
         """
-        return self.db.insert_chat_message(user_id, user_input, response_text, context_type, context_id)
+        return self.db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform)
 
     def get_recent_messages(self, user_id: int, context_type: str, context_id: str, limit: int = 10):
         """

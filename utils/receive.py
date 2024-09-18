@@ -5,7 +5,7 @@ import re
 from app.DB.database import db
 from app.Core.config import Config
 from app.Core.driver import close, start_reverse_ws_server, call_api
-from app.Core.onebotv11 import (
+from app.Core.adapter.onebotv11 import (
     EventType, MessageType, NoticeType, RequestType,
     is_group_message, is_private_message, 
     get_user_id, get_group_id, get_message_content, get_username
@@ -66,7 +66,7 @@ async def handle_message(rev_json):
         context_id = user_id if context_type == MessageType.PRIVATE.value else group_id
 
         if user_input:
-            db.insert_chat_message(user_id, user_input, '', context_type, context_id)
+            db.insert_chat_message(user_id, user_input, '', context_type, context_id, platform='onebot')
 
             if await handle_priority_command(rev_json):
                 return

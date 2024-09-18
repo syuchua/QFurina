@@ -2,6 +2,9 @@ import asyncio
 from ..logger import logger
 
 class TaskManager:
+    """
+    消息队列任务管理器
+    """
     def __init__(self, num_workers=10):
         self.task_queue = asyncio.Queue()
         self.num_workers = num_workers

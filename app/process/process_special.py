@@ -84,7 +84,7 @@ class SpecialHandler:
                 if audio_filename:
                     response = f"[CQ:record,file=http://my_qbot:4321/data/voice/{audio_filename}]" if is_docker else f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
                     await send_msg(msg_type, recipient_id, response)
-                    db.insert_chat_message(user_id, response_text, response, context_type, context_id)
+                    db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
                     return True, response
                 else:
                     await send_msg(msg_type, recipient_id, "语音合成失败。")
@@ -99,7 +99,7 @@ class SpecialHandler:
         if recognition_result:
             response = f"识别结果：{recognition_result}"
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, response_text, response, context_type, context_id)
+            db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
 
@@ -114,11 +114,11 @@ class SpecialHandler:
                 if search_result:
                     if search_query.startswith("https://github.com/"):
                         await self.send_github_result(search_result, msg_type, recipient_id)
-                        db.insert_chat_message(user_id, response_text, search_result, context_type, context_id)
+                        db.insert_chat_message(user_id, response_text, search_result, context_type, context_id, platform='onebot')
                         return True, search_result
                     else:
                         await self.send_search_result(search_result, msg_type, recipient_id)
-                        db.insert_chat_message(user_id, response_text, search_result, context_type, context_id)
+                        db.insert_chat_message(user_id, response_text, search_result, context_type, context_id, platform='onebot')
                         return True, search_result
                 else:
                     await send_msg(msg_type, recipient_id, "抱歉，搜索没有返回结果。")
@@ -135,7 +135,7 @@ class SpecialHandler:
         if image_url:
             response = f"[CQ:image,file={image_url}]"
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, user_input, response, context_type, context_id)
+            db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
 
@@ -144,7 +144,7 @@ class SpecialHandler:
         if voice_url:
             response = f"[CQ:record,file={voice_url}]"
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, user_input, response, context_type, context_id)
+            db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
 
@@ -156,7 +156,7 @@ class SpecialHandler:
             else:
                 response = music_response
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, user_input, response, context_type, context_id)
+            db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
 
