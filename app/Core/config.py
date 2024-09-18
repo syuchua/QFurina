@@ -47,6 +47,8 @@ class Config:
         self.ENABLE_TIME = self.config_data.get('enable_time')
         self.DISABLE_TIME = self.config_data.get('disable_time')
         self.ENABLED_PLUGINS = self.config_data.get('enabled_plugins', [])
+        self.TELEGRAM_BOT_TOKEN = self.config_data.get('telegram_bot_token')
+        self.ENABLE_TELEGRAM = self.config_data.get('enable_telegram')
         with open(DIALOGUES_PATH, 'r', encoding='utf-8') as f:
             self.DIALOGUES = json.load(f)
 

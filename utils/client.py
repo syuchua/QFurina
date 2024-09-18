@@ -75,6 +75,8 @@ def singleton(func):
 
 @singleton
 def get_client(default_config, model_config):
+    """获取大模型请求实例"""
+    
     model_name = config.MODEL_NAME
     supports_image_recognition = model_config.get('vision', False) 
 

@@ -6,7 +6,8 @@ from commands.reset import handle_reset_command
 from commands.character import handle_character_command
 from commands.model import handle_model_command
 from commands.r18 import handle_r18_command
-from commands.switch import handle_switch_command  
+from commands.switch import handle_switch_command
+from commands.blocked import handle_block_word_command
 from commands.plugin import (
     handle_enable_plugin,
     handle_disable_plugin,
@@ -17,6 +18,9 @@ from commands.plugin import (
 )
 
 async def handle_command(command, msg_type, user_info, send_msg, context_type, context_id):
+    """
+    处理用户命令
+    """
     parts = command.split(' ', 1)
     main_command = parts[0].lstrip('/#!')  # 移除触发符号
     args = parts[1] if len(parts) > 1 else ''
@@ -71,7 +75,16 @@ async def handle_command(command, msg_type, user_info, send_msg, context_type, c
                     return
             await handle_clear_history_command(msg_type, user_info, context_type, context_id, send_msg, count)
         elif main_command == 'plugin':
-            await handle_plugin_download_command(msg_type, user_info, args, send_msg) 
+            await handle_plugin_download_command(msg_type, user_info, args, send_msg)
+        elif main_command == 'block_word':
+            count = None
+            if args:
+                try:
+                    count = int(args)
+                except ValueError:
+                    await send_msg(msg_type, user_info["recipient_id"], "无效的参数。")
+                    return
+            await handle_block_word_command(msg_type, user_info, args, send_msg)
         else:
             raise ValueError(f"未知的命令: {main_command}")
     except ValueError as e:

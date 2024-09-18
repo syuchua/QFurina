@@ -2,10 +2,13 @@ import asyncio
 from functools import wraps
 from ..logger import logger
 from ..Core.config import Config
+from .filters import word_filter
 
 config = Config.get_instance()
 
 def error_handler(func):
+    """捕获错误并记录日志的装饰器"""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -17,6 +20,8 @@ def error_handler(func):
     return wrapper
 
 def rate_limit(calls: int, period: float):
+    """限速装饰器"""
+
     semaphore = asyncio.Semaphore(calls)
     
     def decorator(func):
@@ -30,6 +35,8 @@ def rate_limit(calls: int, period: float):
     return decorator
 
 def admin_only(func):
+    """管理员权限检查装饰器"""
+
     @wraps(func)
     async def wrapper(msg_type, user_info, *args, **kwargs):
         user_id = user_info['user_id']
@@ -43,6 +50,8 @@ def admin_only(func):
     return wrapper
 
 def retry(max_retries: int = 3, delay: float = 1.0):
+    """重试装饰器"""
+    
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -58,6 +67,7 @@ def retry(max_retries: int = 3, delay: float = 1.0):
     return decorator
 
 def async_timed():
+    """计算函数执行时间的装饰器"""
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -68,3 +78,23 @@ def async_timed():
             return result
         return wrapper
     return decorator
+
+def filter_message(func):
+    @wraps(func)
+    async def wrapper(message, *args, **kwargs):
+        if isinstance(message, dict):
+            content = message.get('text', '')
+            # 检查是否为 system_message，如果是则跳过检查
+            if message.get('role') == 'system':
+                return await func(message, *args, **kwargs)
+        else:
+            content = str(message)
+
+        blocked_word = word_filter.contains_blocked_word(content)
+        if blocked_word:
+            logger.warning(f"Blocked message containing inappropriate content. Triggered word: '{blocked_word}'. Message: {content}")
+            return None  # 或者返回一个特定的错误消息
+
+        return await func(message, *args, **kwargs)
+
+    return wrapper

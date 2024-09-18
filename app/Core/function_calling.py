@@ -19,7 +19,7 @@ async def call_function(model_name: str, endpoint: str, payload: dict) -> Option
         return None
 
 async def handle_command_request(user_input):
-    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown|enable_plugin|disable_plugin|list_plugins|reload_plugin|plugin)(?:\s+(.+))?')
+    COMMAND_PATTERN = re.compile(r'^[!/](help|reset|character|history|clear|model|r18|music_list|restart|shutdown|enable_plugin|disable_plugin|list_plugins|reload_plugin|plugin|block_word)(?:\s+(.+))?')
     match = COMMAND_PATTERN.match(user_input)
     if match:
         command = match.group(1)
@@ -208,3 +208,4 @@ async def handle_web_search(query):
 #             return None
 
 music_handler = MusicHandler()
+# weather_handler = WeatherHandler()
