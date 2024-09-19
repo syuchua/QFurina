@@ -21,7 +21,7 @@ async def handle_history_command(msg_type, user_info, context_type, context_id, 
         else:
             count = DEFAULT_HISTORY_COUNT
 
-        recent_messages = db.get_recent_messages(user_id=user_info["recipient_id"], context_type=context_type, context_id=context_id, limit=count)
+        recent_messages = db.get_recent_messages(user_id=user_info["recipient_id"], context_type=context_type, context_id=context_id, platform='onebot', limit=count)
         if recent_messages:
             message_texts = [f"{msg['role']}: {msg['content']}" for msg in recent_messages]
             history_message = "\n".join(message_texts)
@@ -44,7 +44,7 @@ async def handle_clear_history_command(msg_type, user_info, context_type, contex
         else:
             count = DEFAULT_CLEAR_COUNT
 
-        recent_messages = db.get_recent_messages(user_id=user_info["recipient_id"], context_type=context_type, context_id=context_id, limit=count)
+        recent_messages = db.get_recent_messages(user_id=user_info["recipient_id"], context_type=context_type, context_id=context_id, platform='onebot', limit=count)
         if recent_messages:
             db.delete_messages(recent_messages)
             await send_msg(msg_type, user_info["recipient_id"], f"最近的 {len(recent_messages)//2} 条消息已删除。")

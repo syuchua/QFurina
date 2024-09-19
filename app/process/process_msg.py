@@ -15,6 +15,7 @@ from .process_special import special_handler
 from .send import send_msg
 from .process_plugin import process_plugin_command, process_plugin_message
 from ..Core.decorators import async_timed
+from .memory_generator import memory_generator
 from ..Core.adapter.onebotv11 import (
     get_user_id, get_group_id, get_message_content, get_username
 )
@@ -69,6 +70,12 @@ def process_chat_message(msg_type):
                     "context_id": context_id
                 }
 
+                #添加用户消息到记忆生成器
+                await memory_generator.add_message({
+                    "role": "user",
+                    "content": user_input
+                })
+
                 # 处理插件消息
                 plugin_response = await process_plugin_message(message)
                 if plugin_response:
@@ -100,10 +107,19 @@ def process_chat_message(msg_type):
                     user_input, user_id, username, context_type, context_id
                 )
 
+                # 获取记忆
+                memories = memory_generator.get_memories()
+                # 将记忆添加到上下文
+                if memories["short_term"]:
+                    messages.append({"role": "system", "content": f"Short-term memory: {memories['short_term']}"})
+                if memories["mid_term"]:
+                    messages.append({"role": "system", "content": f"Mid-term memory: {memories['mid_term']}"})
+
                 # 获取最近的消息
                 recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, platform='onebot', limit=10)
                 user_in_recent = any(msg['role'] == 'user' and msg['content'].startswith(f"{username}:") for msg in recent_messages)  
 
+                # 如果用户消息不在最近消息中，则添加用户历史消息
                 if not user_in_recent:
                     user_historical = db.get_user_historical_messages(user_id=user_id, context_type=context_type, context_id=context_id, limit=3)
                     insert_index = len(recent_messages) // 2
@@ -111,6 +127,7 @@ def process_chat_message(msg_type):
                     if len(recent_messages) > 20:
                         recent_messages = recent_messages[-20:]
 
+                # 将最近消息添加到上下文
                 messages.extend(recent_messages)
                 messages.append({"role": "user", "content": user_input})
 
@@ -121,6 +138,12 @@ def process_chat_message(msg_type):
                 if response_text:
                     db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform='onebot')
                     
+                    # 将 AI 响应添加到记忆生成器
+                    await memory_generator.add_message({
+                        "role": "assistant",
+                        "content": response_text
+                    })
+
                     # 检查 AI 响应中的特殊处理
                     handled, result = await special_handler.process_special(user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id)
                     if handled:
