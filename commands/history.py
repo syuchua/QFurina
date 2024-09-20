@@ -1,4 +1,7 @@
-# commands/history.py
+# *- history.py -*
+"""
+历史记录管理命令
+"""
 from app.DB.database import MongoDB
 
 db = MongoDB()

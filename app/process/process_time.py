@@ -1,4 +1,7 @@
-# process_time.py
+# *- process_time.py -*
+"""
+处理时间和节日信息
+"""
 from utils.current_time import get_current_time, get_lunar_date_info
 from .process_festival import should_include_lunar, should_include_festival
 

@@ -1,4 +1,7 @@
-# commands/r18.py
+# *- r18.py -*
+"""
+涩图接口r18模式管理命令
+"""
 import json
 from app.Core.config import Config
 from app.Core.decorators import admin_only

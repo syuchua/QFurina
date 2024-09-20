@@ -1,4 +1,7 @@
-# commands/model.py
+# *- model.py -*
+"""
+模型管理命令
+"""
 import json
 import os
 from app.Core.config import Config

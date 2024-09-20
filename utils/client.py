@@ -48,7 +48,8 @@ class OpenAIClient(ModelClient):
     async def image_generation(self, model, prompt, **kwargs):
         payload = {
             'model': model,
-            'prompt': prompt
+            'prompt': prompt,
+            'max_tokens': 512
         }
         payload.update(kwargs)
         return await self.request('images/generate', payload)

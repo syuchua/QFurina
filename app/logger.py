@@ -1,3 +1,7 @@
+# *- logger.py -*
+"""
+全局日志管理模块
+"""
 from loguru import logger
 import os
 import sys

@@ -77,13 +77,6 @@ async def handle_command(command, msg_type, user_info, send_msg, context_type, c
         elif main_command == 'plugin':
             await handle_plugin_download_command(msg_type, user_info, args, send_msg)
         elif main_command == 'block_word':
-            count = None
-            if args:
-                try:
-                    count = int(args)
-                except ValueError:
-                    await send_msg(msg_type, user_info["recipient_id"], "无效的参数。")
-                    return
             await handle_block_word_command(msg_type, user_info, args, send_msg)
         else:
             raise ValueError(f"未知的命令: {main_command}")

@@ -1,4 +1,7 @@
-# switch.py
+# *- switch.py -*
+"""
+机器人开关命令
+"""
 from functools import wraps
 from app.Core.config import Config
 from app.Core.decorators import admin_only

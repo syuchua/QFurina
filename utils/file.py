@@ -1,3 +1,7 @@
+# *- file.py -*
+"""
+文件上传模块
+"""
 import os
 from flask import Flask, send_file, request
 from flask_cors import CORS

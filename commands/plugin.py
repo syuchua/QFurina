@@ -1,3 +1,7 @@
+# *- plugin.py -*
+"""
+插件管理命令
+"""
 import os,sys,subprocess
 from git import Repo
 from app.plugin.plugin_manager import plugin_manager

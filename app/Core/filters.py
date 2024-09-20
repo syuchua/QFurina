@@ -1,3 +1,13 @@
+# filters.py: 用于处理消息过滤和屏蔽词的模块
+"""
+过滤消息中的屏蔽词
+主要特点和功能：
+- 加载屏蔽词：从配置文件中加载屏蔽词。
+- 更新模式：根据加载的屏蔽词更新正则表达式模式。
+- 包含检查：检查消息中是否包含屏蔽词。
+- 添加和删除：添加和删除屏蔽词。
+- 重新加载：重新加载配置文件中的屏蔽词，实现热更新。
+"""
 import json
 import re
 from pathlib import Path
@@ -40,10 +50,22 @@ class WordFilter:
         self.blocked_words.add(word)
         self._update_pattern()
         self._save_blocked_words()
+        self.reload_config()
 
     def remove_blocked_word(self, word):
         self.blocked_words.discard(word)
         self._update_pattern()
         self._save_blocked_words()
+        self.reload_config()
+
+    def reload_config(self):
+        """重新加载配置文件中的屏蔽词"""
+        new_words = self._load_blocked_words()
+        if new_words != self.blocked_words:
+            self.blocked_words = new_words
+            self._update_pattern()
+            logger.info(f"Reloaded blocked words. New count: {len(self.blocked_words)}")
+        else:
+            logger.info("Blocked words unchanged after reload.")
 
 word_filter = WordFilter()

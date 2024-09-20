@@ -1,3 +1,7 @@
+# *- config.py -*
+"""
+初始化配置文件
+"""
 import json
 from app.logger import logger
 class Config:
