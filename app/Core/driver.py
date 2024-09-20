@@ -1,3 +1,7 @@
+# *- driver.py -*
+"""
+选择连接方式的模块
+"""
 from typing import Callable
 from ..Core.config import Config
 

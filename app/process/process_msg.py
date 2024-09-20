@@ -1,7 +1,6 @@
 # process.py
 import asyncio, random
 from functools import wraps
-from ..Core.decorators import filter_message
 from ..Core.message_utils import MessageManager
 from ..plugin.plugin_manager import plugin_manager
 from utils.model_request import get_chat_response
@@ -28,12 +27,35 @@ def get_dialogue_response(user_input):
     return None
 
 @async_timed()
-@filter_message
 async def timed_get_chat_response(messages):
     return await get_chat_response(messages)
 
 
 def process_chat_message(msg_type):
+    """
+    处理消息
+    这个装饰器用于处理接收到的消息，包括消息的预处理、插件处理、命令处理、记忆生成和最终响应发送。
+    处理流程：
+    1. 获取消息内容、用户ID、用户名、接收者ID、上下文类型和上下文ID。
+    2. 构建消息对象。
+    3. 将用户消息添加到记忆生成器。
+    4. 处理插件消息。
+    5. 检查用户输入中的特殊请求。
+    6. 检查是否为命令。
+    7. 使用 MessageManager 创建消息上下文。
+    8. 获取记忆。
+    9. 将记忆添加到上下文。
+    10. 获取最近的消息。
+    11. 如果用户消息不在最近消息中，则添加用户历史消息。
+    12. 将最近消息添加到上下文。
+    13. 将用户消息和上下文一起发送给 AI 模型。
+    14. 获取 AI 响应。
+    15. 检查 AI 响应中的特殊处理。
+    16. 如果没有特殊处理，继续正常的消息处理流程。
+    17. 使用消息截断器发送最终响应。
+    18. 将响应添加到原始消息对象中。
+    19. 返回修改后的消息对象。
+    """
     def decorator(func):
         @wraps(func)
         async def wrapper(rev, *args, **kwargs):

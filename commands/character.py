@@ -1,4 +1,7 @@
-# character.py
+# *- character.py -*
+"""
+角色管理命令
+"""
 from app.Core.config import Config
 from app.Core.decorators import admin_only
 config = Config.get_instance()

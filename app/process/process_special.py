@@ -1,4 +1,7 @@
-# process_special.py
+# *- process_special.py -*
+"""
+处理特殊请求
+""" 
 import re, asyncio, os
 from ..DB.database import db
 from ..Core.decorators import async_timed, error_handler

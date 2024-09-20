@@ -1,3 +1,8 @@
+# *- pipeline.py -*
+"""
+消息处理管道
+根据平台类型选择处理函数
+"""
 from functools import wraps
 from typing import Callable, Any, Dict
 from ..process.process_msg import process_chat_message, handle_telegram_message

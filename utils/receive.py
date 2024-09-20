@@ -5,6 +5,7 @@ import re
 from app.DB.database import db
 from app.Core.config import Config
 from app.Core.driver import close, start_reverse_ws_server, call_api
+from app.Core.decorators import filter_message
 from app.Core.adapter.onebotv11 import (
     EventType, MessageType, NoticeType, RequestType,
     is_group_message, is_private_message, 
@@ -52,7 +53,11 @@ async def handle_priority_command(rev_json):
         logger.error(f"Error handling priority command: {str(e)}")
         return False
 
+@filter_message
 async def handle_message(rev_json):
+    """
+    处理接收到的消息
+    """
     if 'post_type' not in rev_json:
         logger.warning(f"Received unexpected message format: {rev_json}")
         return
@@ -136,7 +141,7 @@ async def start_http_server():
         await server.serve_forever()
 
 async def start_reverse_ws():
-    await start_reverse_ws_server('0.0.0.0', 8011, handle_message)
+    await start_reverse_ws_server('127.0.0.1', 8011, handle_message)
     logger.info("反向 WebSocket 服务器已启动，等待连接...")
 
 async def close_connection():

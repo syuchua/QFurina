@@ -1,5 +1,8 @@
+# *- music_list.py -*
+"""
+音乐列表管理命令
+"""
 import os
-
 
 MUSIC_DIRECTORY = 'data/music'
 MUSIC_FILES = [f for f in os.listdir(MUSIC_DIRECTORY) if f.endswith(('.mp3', '.wav'))]

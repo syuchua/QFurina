@@ -1,3 +1,7 @@
+# *- reset.py -*
+"""
+重置会话命令
+"""
 import asyncio
 from app.logger import logger
 from utils.receive import message_queue  # 导入消息队列

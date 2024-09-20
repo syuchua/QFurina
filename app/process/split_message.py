@@ -1,3 +1,7 @@
+# *- split_message.py -*
+"""
+将长消息分割成多个短消息。
+"""
 def split_message(message, max_length=1000):
     """
     将长消息分割成多个短消息。

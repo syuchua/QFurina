@@ -80,6 +80,7 @@ def async_timed():
     return decorator
 
 def filter_message(func):
+    """过滤消息的装饰器"""
     @wraps(func)
     async def wrapper(message, *args, **kwargs):
         if isinstance(message, dict):

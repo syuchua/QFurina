@@ -1,4 +1,18 @@
-# *- boot.py -*
+# *- boot.py -* 
+"""
+启动程序
+启动流程：
+1. 加载配置
+2. 初始化日志
+3. 初始化数据库
+4. 初始化任务管理器
+5. 启动 HTTP 服务器或 WebSocket 服务器
+6. 启动消息处理循环
+7. 启动定时任务
+8. 启动 Telegram 机器人(可选)
+9. 启动异步任务
+10. 启动 Flask 服务器
+"""
 import asyncio, threading, os, time, schedule
 from app.process.task_manger import task_manager
 from app.Core.config import config

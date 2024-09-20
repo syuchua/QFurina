@@ -1,4 +1,7 @@
-# process_plugin.py
+# *- process_plugin.py -*
+"""
+处理插件消息、命令和文件上传
+"""
 from app.plugin.plugin_manager import plugin_manager
 from app.logger import logger
 from app.Core.decorators import async_timed
