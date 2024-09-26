@@ -36,7 +36,11 @@ services:
     image: mlikiowa/napcat-docker:latest
     container_name: napcat
     environment:
+<<<<<<< HEAD
       - ACCOUNT=123456789 # 修改为机器人的QQ号
+=======
+      - ACCOUNT=123456789 # 切换为你的机器人QQ号
+>>>>>>> ed8261aefa7393207da70f017e7f2b60f4acf20c
       - WSR_ENABLE=true
       - WS_URLS=["ws://my_qbot:8011/ws"]
     ports:
