@@ -66,8 +66,10 @@ def load_config():
     
     return default_config, model_config
 
+# 单例装饰器: 用于确保在多线程环境中只有一个实例
 def singleton(func):
     instances = {}
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if func not in instances:
             instances[func] = func(*args, **kwargs)
@@ -95,8 +97,8 @@ def get_client(default_config, model_config):
         logger.warning(f"Model is not specified in model.json. Using default config.json settings.")
     
     # 使用默认配置
-    api_key = default_config.get('openai_api_key')
-    base_url = default_config.get('proxy_api_base', 'https://api.openai.com/v1') 
+    api_key = default_config.get('api_key')
+    base_url = default_config.get('base_url', 'https://api.openai.com/v1') 
     timeout = 120
     client = OpenAIClient(api_key, base_url, timeout) 
     logger.info(f"Using default settings with base_url: {base_url}")

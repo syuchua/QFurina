@@ -7,6 +7,7 @@ from ..logger import logger
 from ..Core.config import config
 from ..process.split_message import split_message
 from app.Core.adapter.tgbot import TelegramBot
+from functools import wraps
 
 # 初始化 Telegram Bot (如果启用)
 tg_bot = TelegramBot(config.TELEGRAM_BOT_TOKEN) if config.ENABLE_TELEGRAM and config.TELEGRAM_BOT_TOKEN else None
@@ -14,6 +15,7 @@ tg_bot = TelegramBot(config.TELEGRAM_BOT_TOKEN) if config.ENABLE_TELEGRAM and co
 # 超时重试装饰器
 def retry_on_timeout(retries=1, timeout=10):
     def decorator(func):
+        @wraps(func)
         async def wrapper(*args, **kwargs):
             for attempt in range(retries):
                 try:

@@ -13,6 +13,7 @@
 9. 启动异步任务
 10. 启动 Flask 服务器
 """
+import psutil
 import asyncio, threading, os, time, schedule
 from app.process.task_manger import task_manager
 from app.Core.config import config
@@ -30,6 +31,38 @@ from app.plugin.plugin_manager import plugin_manager
 from app.Core.adapter.onebotv11 import EventType, is_group_message, is_private_message
 from app.Core.adapter.tgbot import TelegramBot
 from functools import partial
+import streamlit.web.cli as stcli
+import sys
+from multiprocessing import Process
+import subprocess
+
+def start_streamlit():
+    command = f"{sys.executable} -m streamlit run WebUI/config_ui.py --server.port 8501 --server.address 0.0.0.0 --server.headless true"
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
+    # 实时打印输出
+    for line in process.stdout:
+        print(f"Streamlit stdout: {line.strip()}")
+    for line in process.stderr:
+        print(f"Streamlit stderr: {line.strip()}")
+    
+    # 等待进程结束并获取返回码
+    return_code = process.wait()
+    print(f"Streamlit process exited with return code {return_code}")
+    
+    return process
+
+async def run_streamlit():
+    def run():
+        start_streamlit()
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    
+    # 等待一段时间确保 Streamlit 有机会启动
+    await asyncio.sleep(10)
+    
+    return thread
 
 BOT_ACTIVE = threading.Event()
 BOT_ACTIVE.set()  # 默认为激活状态
@@ -54,7 +87,6 @@ class FlaskServer:
         logger.info("启动 Flask 应用程序...")
         while self.is_running:
             self.server.handle_request() 
-            
 
     def shutdown(self):
         logger.info("关闭 Flask 应用程序...")
@@ -89,8 +121,6 @@ async def process_message(rev_message):
         await asyncio.create_task(process_telegram_message(rev_message))
     else:
         logger.warning(f"Received unexpected message format: {rev_message}")
-
-
 
 @error_handler
 async def message_loop():
@@ -176,6 +206,13 @@ async def task():
     # 加载插件
     await plugin_manager.load_plugins()
 
+    # 启动WebUI
+    webui_thread = await run_streamlit()
+    if webui_thread:
+        logger.info("WebUI已启动，您可以通过浏览器访问 http://localhost:8501 来配置QFurina")
+    else:
+        logger.error("WebUI启动失败")
+
     try:
         tasks = [session_timeout_check()]
         if config.CONNECTION_TYPE == 'http':
@@ -200,6 +237,11 @@ async def task():
         await plugin_manager.unload_plugins()
         flask_server.shutdown()
         get_thread_pool().shutdown(wait=False)
+        if webui_thread and webui_thread.is_alive():
+            logger.info("正在关闭 WebUI...")
+            webui_thread.terminate()
+            webui_thread.join(timeout=5)
+            logger.info("WebUI 已关闭")
         logger.info("程序关闭完成")
 
 def shutdown_handler(sig, frame):

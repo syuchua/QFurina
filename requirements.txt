@@ -16,3 +16,4 @@ websockets==12.0
 Werkzeug==3.0.4
 zhdate==0.1
 gitpython
+streamlit
