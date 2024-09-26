@@ -11,8 +11,8 @@ from ..Core.function_calling import (
     handle_voice_request, music_handler
 )
 from .send import send_msg
-from ..process.split_message import split_message
 from utils.voice_service import generate_voice
+from utils.model_request import get_chat_response
 
 class SpecialHandler:
     def __init__(self):
@@ -58,20 +58,6 @@ class SpecialHandler:
 
         return False, None
 
-    # async def handle_weather_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
-    #     try:
-    #         weather_response = await weather_handler.handle_request(response_text)
-    #         if weather_response:
-    #             await send_msg(msg_type, recipient_id, weather_response)
-    #             db.insert_chat_message(user_id, response_text, weather_response, context_type, context_id)
-    #             return True, weather_response
-    #         else:
-    #             await send_msg(msg_type, recipient_id, "抱歉，无法获取天气信息。")
-    #             return True, "无法获取天气信息"
-    #     except Exception as e:
-    #         logger.error(f"Error in weather request handling: {e}", exc_info=True)
-    #         await send_msg(msg_type, recipient_id, "获取天气信息时发生错误，请稍后再试。")
-    #         return True, "天气信息获取错误"
 
     async def handle_voice_synthesis(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
         is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
@@ -115,23 +101,38 @@ class SpecialHandler:
                 await send_msg(msg_type, recipient_id, f"正在搜索：{search_query}")
                 search_result = await handle_web_search(search_query)
                 if search_result:
-                    if search_query.startswith("https://github.com/"):
-                        await self.send_github_result(search_result, msg_type, recipient_id)
-                        db.insert_chat_message(user_id, response_text, search_result, context_type, context_id, platform='onebot')
-                        return True, search_result
-                    else:
-                        await self.send_search_result(search_result, msg_type, recipient_id)
-                        db.insert_chat_message(user_id, response_text, search_result, context_type, context_id, platform='onebot')
-                        return True, search_result
+                    is_github = search_query.startswith("https://github.com/")
+                    ai_response = await self.generate_search_response(search_query, search_result, is_github)
+                    # 不再直接发送消息，而是返回生成的回复
+                    return True, ai_response
                 else:
-                    await send_msg(msg_type, recipient_id, "抱歉，搜索没有返回结果。")
-                    return True, "搜索无结果"
+                    return True, "抱歉，搜索没有返回结果。"
             except Exception as e:
                 logger.error(f"Error during web search: {e}")
-                await send_msg(msg_type, recipient_id, "搜索过程中出现错误，请稍后再试。")
-                return True, "搜索错误"
-            return True, None
+                return True, "搜索过程中出现错误，请稍后再试。"
         return False, None
+
+    async def generate_search_response(self, query: str, search_results: str, is_github: bool = False) -> str:
+        """根据搜索结果生成AI回复"""
+        prompt = f"""
+        用户搜索查询: "{query}"
+        
+        搜索结果:
+        {search_results}
+        
+        请根据以上搜索结果，生成一个简洁、信息丰富且自然的回复。回复应该：
+        1. 总结搜索结果的主要信息
+        2. 提供对查询的直接回答（如果可能）
+        3. 使用自然、对话式的语言
+        4. 如果搜索结果中包含多个观点，请简要说明不同的观点
+        5. 如果适当，可以提供进一步探索的建议
+        {"6. 重点介绍GitHub项目的主要功能和特点" if is_github else ""}
+        
+        请以对话的方式回复，就像你在与用户直接交谈一样。回复应该是中文的。
+        """
+
+        response = await get_chat_response([{"role": "user", "content": prompt}])
+        return response.strip()
 
     async def handle_image_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
         image_url = await handle_image_request(user_input)
@@ -163,36 +164,9 @@ class SpecialHandler:
             return True, response
         return False, None
 
-    # @staticmethod
-    # def clean_draw_prompt(prompt):
-    #     prompt = prompt.replace('\n', ' ')
-    #     prompt = re.sub(r'\[.*?\]', '', prompt)
-    #     prompt = prompt.replace('()', '')
-    #     prompt = re.sub(r'[,，。.…]+', ' ', prompt)
-    #     prompt = re.sub(r'\s+', ',', prompt)
-    #     prompt = ''.join([char for char in prompt if not SpecialHandler.is_chinese(char)])
-    #     prompt = prompt.strip()
-    #     prompt = re.sub(r'^[,.。... ! ?\s]+|[,.。... ! ?\s]+$', '', prompt)
-    #     return prompt
 
     @staticmethod
     def is_chinese(char):
         return '\u4e00' <= char <= '\u9fff'
-
-    @staticmethod
-    async def send_github_result(result, msg_type, recipient_id):
-        result_preview = result[:500] if len(result) > 500 else result
-        await send_msg(msg_type, recipient_id, f"Search result: {result_preview}...")
-        remaining_start = result.find("#search")
-        if remaining_start != -1:
-            remaining_text = result[remaining_start:]
-            await send_msg(msg_type, recipient_id, remaining_text)
-
-    @staticmethod
-    async def send_search_result(result, msg_type, recipient_id):
-        result_parts = split_message(result, max_length=1000)
-        for part in result_parts:
-            await send_msg(msg_type, recipient_id, part)
-            await asyncio.sleep(0.5)
 
 special_handler = SpecialHandler()
