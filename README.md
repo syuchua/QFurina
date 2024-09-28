@@ -68,7 +68,7 @@ QFurina 是一个基于 Python 的 QQ 机器人后端服务，提供了一系列
 
 ## 许可证
 
-本项目采用 [MIT 许可证](LICENSE)。
+本项目采用 [Apache License 2.0 许可证](LICENSE)。
 
 ## 相关资源
 
