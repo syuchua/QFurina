@@ -76,7 +76,8 @@ class MemoryGenerator:
         self.MIN_SHORT_TERM_MESSAGES = 20
         self.MIN_MID_TERM_MESSAGES = 150
 
-    async def add_message(self, message: Dict[str, str]):
+    async def add_message(self, message: Dict[str, str], context_type: str = None, context_id: str = None):
+        # 如果需要，可以在这里使用 context_type 和 context_id
         current_time = time.time()
         self.short_term_buffer.append(message)
         self.mid_term_buffer.append(message)
@@ -125,7 +126,7 @@ class MemoryGenerator:
         return response.strip()
 
     # 获取记忆
-    def get_memories(self) -> Dict[str, str]:
+    def get_memories(self, context_type: str = None, context_id: str = None) -> Dict[str, str]:
         return {
             "short_term": self.short_term_memory,
             "mid_term": self.mid_term_memory

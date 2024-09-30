@@ -3,6 +3,8 @@ import os, time
 from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import MongoClient, ASCENDING
+
+from ..Core.decorators import async_timed
 from ..logger import logger
 from ..Core.config import Config
 
@@ -14,6 +16,7 @@ class MongoDB:
         self.db = self.client[self._get_db_name()]
         self.ensure_indexes()
 
+    # 创建MongoDBclient，如果IS_DOCKER为true，则连接到docker容器中的mongo，否则连接到本地mongo
     def _create_client(self):
         is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
         mongo_uri = os.getenv('MONGO_URI', 'mongodb://mongo:27017' if is_docker else 'mongodb://localhost:27017')
@@ -25,6 +28,7 @@ class MongoDB:
     def get_collection(self, collection_name):
         return self.db[collection_name]
 
+    # 创建索引
     def ensure_indexes(self):
         try:
             users_collection = self.get_collection('users')
@@ -36,6 +40,7 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error ensuring indexes: {e}")
 
+    # 插入用户信息
     def insert_user_info(self, user_info):
         try:
             users_collection = self.get_collection('users')
@@ -48,6 +53,7 @@ class MongoDB:
             logger.error(f"Error inserting/updating user info: {e}")
 
 
+    # 插入聊天信息
     def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id, platform):
         try:
             if response_text:
@@ -67,6 +73,8 @@ class MongoDB:
 
     
 
+    # 获取最近的聊天信息
+    #@async_timed()
     def get_recent_messages(self, user_id, context_type, context_id, platform,limit=10):
         try:
             messages_collection = self.get_collection('messages')
@@ -95,6 +103,7 @@ class MongoDB:
             logger.error(f"Error getting recent messages: {e}")
             return []
 
+    # 获取用户的历史聊天信息
     def get_user_historical_messages(self, user_id, context_type, context_id, limit=5):
         try:
             messages_collection = self.get_collection('messages')
@@ -120,6 +129,7 @@ class MongoDB:
             return []
 
 
+    # 删除过期的聊天信息
     def clean_old_messages(self, days=1, exempt_user_ids=None, exempt_context_ids=None):
         try:
             exempt_user_ids = exempt_user_ids or [config.ADMIN_ID]
@@ -138,6 +148,7 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error cleaning old messages: {e}")
 
+    # 删除单条聊天信息
     def delete_message(self, message):
         try:
             messages_collection = self.get_collection('messages')
@@ -152,6 +163,7 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error deleting message: {e}")
 
+    # 删除多条聊天信息
     def delete_messages(self, messages_list):
         try:
             logger.info(f"Attempting to delete {len(messages_list)} messages")
@@ -168,6 +180,7 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error deleting messages: {e}")
 
+    # 获取聊天信息数量
     def get_message_count(self, start_time=None, end_time=None, user_id=None, context_type=None, context_id=None):
         try:
             messages_collection = self.get_collection('messages')
@@ -199,6 +212,7 @@ class MongoDB:
             logger.error(f"Error getting message count: {e}")
             return 0
 
+    # 获取每日聊天信息数量
     def get_daily_message_count(self, days=7, user_id=None, context_type=None, context_id=None):
         try:
             messages_collection = self.get_collection('messages')

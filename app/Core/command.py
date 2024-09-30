@@ -57,23 +57,9 @@ async def handle_command(command, msg_type, user_info, send_msg, context_type, c
         elif main_command == 'restart':
             await handle_switch_command(msg_type, user_info, 'restart', send_msg)
         elif main_command == 'history':
-            count = None
-            if args:
-                try:
-                    count = int(args)
-                except ValueError:
-                    await send_msg(msg_type, user_info["recipient_id"], "请在 history 后输入一个有效的数字。")
-                    return
-            await handle_history_command(msg_type, user_info, context_type, context_id, send_msg, count)
+            await handle_history_command(msg_type, user_info, context_type, context_id, send_msg, args)
         elif main_command == 'clear':
-            count = None
-            if args:
-                try:
-                    count = int(args)
-                except ValueError:
-                    await send_msg(msg_type, user_info["recipient_id"], "请在 clear 后输入一个有效的数字。")
-                    return
-            await handle_clear_history_command(msg_type, user_info, context_type, context_id, send_msg, count)
+            await handle_clear_history_command(msg_type, user_info, context_type, context_id, send_msg, args)
         elif main_command == 'plugin':
             await handle_plugin_download_command(msg_type, user_info, args, send_msg)
         elif main_command == 'block_word':
