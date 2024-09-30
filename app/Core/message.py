@@ -26,6 +26,11 @@ async def process_private_message(event: PrivateMessageEvent):
 async def process_group_message(event: GroupMessageEvent):
     """处理群聊消息"""
     user_id = get_user_id(event)
+    
+    # 如果消息来自机器人自己，直接返回 None
+    if user_id == config.SELF_ID:
+        return None
+    
     group_id = get_group_id(event)
     content = get_message_content(event)
     logger.info(f"\nReceived group message from user {user_id} in group {group_id}: {content}\n")

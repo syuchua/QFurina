@@ -96,7 +96,7 @@ def process_chat_message(msg_type):
                 await memory_generator.add_message({
                     "role": "user",
                     "content": user_input
-                })
+                },context_type,context_id)
 
                 # 处理插件消息
                 plugin_response = await process_plugin_message(message)
@@ -164,7 +164,7 @@ def process_chat_message(msg_type):
                     await memory_generator.add_message({
                         "role": "assistant",
                         "content": response_text
-                    })
+                    },context_type,context_id)
 
                     # 检查 AI 响应中的特殊处理
                     handled, result = await special_handler.process_special(user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id)
@@ -172,10 +172,10 @@ def process_chat_message(msg_type):
                         return result
                     
                     # 如果没有特殊处理，继续正常的消息处理流程
-                    if user_id == config.ADMIN_ID:                    
-                        response_with_username = response_text
+                    if user_id != config.ADMIN_ID:                    
+                        response_with_username = f"{username},{response_text}"
                     else:
-                        response_with_username = f"{username}，{response_text}"
+                        response_with_username = response_text
 
                     # 使用消息截断器发送最终响应
                     response_parts = split_message(response_with_username)

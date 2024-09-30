@@ -13,8 +13,7 @@
 9. 启动异步任务
 10. 启动 Flask 服务器
 """
-import psutil
-import asyncio, threading, os, time, schedule
+import asyncio, threading, os, time, schedule, subprocess, sys
 from app.process.task_manger import task_manager
 from app.Core.config import config
 from app.logger import clean_old_logs, logger
@@ -31,11 +30,8 @@ from app.plugin.plugin_manager import plugin_manager
 from app.Core.adapter.onebotv11 import EventType, is_group_message, is_private_message
 from app.Core.adapter.tgbot import TelegramBot
 from functools import partial
-import streamlit.web.cli as stcli
-import sys
-from multiprocessing import Process
-import subprocess
 
+# 启动Streamlit
 def start_streamlit():
     command = f"{sys.executable} -m streamlit run WebUI/config_ui.py --server.port 8501 --server.address 0.0.0.0 --server.headless true"
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -151,8 +147,9 @@ def schedule_jobs():
     schedule.every().day.at(config.DISABLE_TIME).do(shutdown_gracefully)
     schedule.every().day.at(config.ENABLE_TIME).do(restart_main_loop)
 
-    # 定时清理任务
-    schedule.every().day.at("02:00").do(partial(mongo_db.clean_old_messages, days=1, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups))
+    # 每14天02:00清理过期聊天信息
+    schedule.every().day.at("02:00").do(partial(mongo_db.clean_old_messages, days=14, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups))
+    # 每14天03:00清理过期日志
     schedule.every().day.at("03:00").do(partial(clean_old_logs, days=14))
 
     voice_directory = os.path.join(os.getcwd(), config.AUDIO_SAVE_PATH)
@@ -205,6 +202,9 @@ async def task():
 
     # 加载插件
     await plugin_manager.load_plugins()
+
+    # 启动会话管理器
+    # await start_session_workers()
 
     # 启动WebUI
     webui_thread = await run_streamlit()
