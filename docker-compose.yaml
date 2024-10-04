@@ -6,6 +6,7 @@ services:
     ports:
       - "8011:8011"  # WebSocket
       - "4321:4321"  # 文件上传
+      - "8501:8501"  #WebUI
     volumes:
       - ./config:/app/config
       - ./data:/app/data
