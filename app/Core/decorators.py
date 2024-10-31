@@ -22,7 +22,7 @@ def error_handler(func):
 
 def rate_limit(calls: int, period: float):
     """限速装饰器，使用令牌桶算法控制调用频率"""
-    max_tokens = calls            # 令牌桶的最大容量
+    max_tokens = calls            # 令牌桶的容量
     tokens = calls                # 当前令牌数
     refill_time = period / calls  # 每个令牌的填充时间
     last_check = time.time()      # 上次检查的时间
@@ -34,7 +34,6 @@ def rate_limit(calls: int, period: float):
             nonlocal tokens, last_check
             async with lock:
                 current = time.time()
-                # 计算自上次检查后新填充的令牌数量
                 elapsed = current - last_check
                 refill = elapsed / refill_time
                 if refill > 0:
@@ -42,12 +41,11 @@ def rate_limit(calls: int, period: float):
                     last_check = current
                 if tokens >= 1:
                     tokens -= 1
+                    return await func(*args, **kwargs)
                 else:
-                    # 计算需要等待的时间
                     wait_time = refill_time - elapsed % refill_time
-                    await asyncio.sleep(wait_time)
-                    return await wrapper(*args, **kwargs)
-            return await func(*args, **kwargs)
+            await asyncio.sleep(wait_time)
+            return await wrapper(*args, **kwargs)
         return wrapper
     return decorator
 
