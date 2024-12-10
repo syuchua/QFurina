@@ -94,21 +94,36 @@ class SpecialHandler:
 
     async def handle_search_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
         search_pattern = re.compile(r"#search\s*(.*)")
-        search_match = search_pattern.search(response_text)
+        
+        # 首先尝试在 user_input 中匹配
+        search_match = search_pattern.search(user_input)
+        if not search_match:
+            # 如果在 user_input 中未找到，再在 response_text 中匹配
+            search_match = search_pattern.search(response_text)
+        
         if search_match:
             search_query = search_match.group(1).strip()
+            if not search_query:
+                # 如果未提供搜索关键词，给出提示
+                await send_msg(msg_type, recipient_id, "请在 #search 后面提供搜索关键词。")
+                return True, None
             try:
                 await send_msg(msg_type, recipient_id, f"正在搜索：{search_query}")
                 search_result = await handle_web_search(search_query)
                 if search_result:
                     is_github = search_query.startswith("https://github.com/")
                     ai_response = await self.generate_search_response(search_query, search_result, is_github)
-                    # 不再直接发送消息，而是返回生成的回复
+                    # 直接发送生成的回复
+                    await send_msg(msg_type, recipient_id, ai_response)
+                    db.insert_chat_message(user_id, search_query, ai_response, context_type, context_id, platform='onebot')
                     return True, ai_response
                 else:
+                    logger.error("搜索没有返回结果。")
+                    await send_msg(msg_type, recipient_id, "抱歉，搜索没有返回结果。")
                     return True, "抱歉，搜索没有返回结果。"
             except Exception as e:
-                logger.error(f"Error during web search: {e}")
+                logger.error(f"搜索过程中出现错误: {e}")
+                await send_msg(msg_type, recipient_id, "搜索过程中出现错误，请稍后再试。")
                 return True, "搜索过程中出现错误，请稍后再试。"
         return False, None
 
