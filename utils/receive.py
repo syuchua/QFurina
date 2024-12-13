@@ -71,7 +71,7 @@ async def handle_message(rev_json):
         context_id = user_id if context_type == MessageType.PRIVATE.value else group_id
 
         if user_input:
-            db.insert_chat_message(user_id, user_input, '', context_type, context_id, platform='onebot')
+            await db.insert_chat_message(user_id, user_input, '', context_type, context_id, platform='onebot')
 
             if await handle_priority_command(rev_json):
                 return
