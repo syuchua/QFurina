@@ -69,7 +69,7 @@ class MemoryGenerator:
         self.mid_term_memory = ""
         self.last_short_term_update = time.time()
         self.last_mid_term_update = time.time()
-        self.SHORT_TERM_INTERVAL = 600  # 10分钟
+        self.SHORT_TERM_INTERVAL = 900  # 10分钟
         self.MID_TERM_INTERVAL = 3600  # 1小时
         self.MAX_SHORT_TERM_INTERVAL = 3600  # 最长1小时
         self.MAX_MID_TERM_INTERVAL = 86400  # 最长24小时

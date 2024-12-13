@@ -15,9 +15,9 @@ async def generate_voice(text, cha_name=None):
         cha_name = config.CHA_NAME
 
     tts_data = {
-        "cha_name": cha_name,
+        # "cha_name": cha_name,
         "text": text.replace("...", "…").replace("…", ","),
-        "character_emotion": random.choice(['default', '平常的', '慢速病娇', '傻白甜', '平静的', '疯批', '聊天'])
+        # "character_emotion": random.choice(['default', '平常的', '慢速病娇', '傻白甜', '平静的', '疯批', '聊天'])
     }
 
     try:

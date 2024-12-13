@@ -1,9 +1,9 @@
 # client.py
 
 from functools import wraps
-from utils.cqimage import get_cq_image_base64
+from utils.cqimage import get_cq_image_base64, decode_cq_code
 from app.logger import logger
-import aiohttp, json, os
+import aiohttp, json, os, ssl
 from app.Core.config import config
 from app.Core.decorators import async_timed, error_handler, rate_limit, retry
 
@@ -15,12 +15,17 @@ class ModelClient:
         self.base_url = base_url
         self.timeout = timeout
 
+        # 创建自定义的 SSL 上下文，禁用 SSL 证书验证
+        self.ssl_context = ssl.create_default_context()
+        self.ssl_context.check_hostname = False
+        self.ssl_context.verify_mode = ssl.CERT_NONE
+
     async def request(self, endpoint, payload):
         headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         }
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl_context)) as session:
             async with session.post(f"{self.base_url}/{endpoint}", json=payload, headers=headers, timeout=self.timeout) as response:
                 response.raise_for_status()
                 content_type = response.headers.get('Content-Type', '')
@@ -49,7 +54,7 @@ class OpenAIClient(ModelClient):
         payload = {
             'model': model,
             'prompt': prompt,
-            'max_tokens': 512
+            'max_tokens': 1024
         }
         payload.update(kwargs)
         return await self.request('images/generate', payload)
@@ -136,13 +141,13 @@ async def generate_image(prompt):
 async def recognize_image(cq_code):
     """
     识别CQ码中的图像内容。
-    
+
     参数:
     cq_code (str): 包含图像信息的CQ码。
-    
+
     返回:
     str: 图像识别的结果文本。
-    
+
     异常:
     Exception: 如果API不支持图像识别或识别过程中出现错误。
     """
@@ -153,21 +158,22 @@ async def recognize_image(cq_code):
     try:
         # 从CQ码中提取图片base64编码
         image_data = await get_cq_image_base64(cq_code)
-        #logger.info(f"Image base64: {image_data}")
-        
-        # 准备消息
-        message_content = f"识别图片并用中文回复，图片base64编码:{image_data}"
+        if not image_data:
+            raise ValueError("Failed to get image data from CQ code.")
         
         logger.info(f"Sending image for recognition")
         
-        # 使用 get_chat_response 函数获取聊天响应
-        messages = [{"role": "user", "content": message_content}]
-        from utils.model_request import get_chat_response
+        # 准备请求，直接传递图像数据
+        messages = f"识别图片并用中文回复，图片base64编码:{image_data}"
+        
+        # 使用支持图像识别的API请求
+        from .model_request import get_chat_response
         response_text = await get_chat_response(messages)
         
         return response_text
     except Exception as e:
-        raise Exception(f"Error during image recognition: {e}")
+        logger.error(f"Error during image recognition: {e}")
+        return "图像识别时出现错误，请稍后重试。"
     
 default_config, model_config = load_config()
 client, supports_image_recognition = get_client(default_config, model_config)

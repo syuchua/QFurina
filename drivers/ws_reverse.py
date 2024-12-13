@@ -21,7 +21,7 @@ class WsReverseDriver:
     async def websocket_handler(self, websocket, path):
         self._websocket = websocket
         self._connected = True
-        logger.info("Client connected")
+        logger.info("已连接 ")
         try:
             async for message in websocket:
                 #logger.info(f"Received message: {message}")

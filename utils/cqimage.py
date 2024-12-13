@@ -66,7 +66,7 @@ async def get_cq_image_base64(cq_code):
     """
     image_url = decode_cq_code(cq_code)
     if image_url:
-        # logger.info(f"Image URL: {image_url}")
+        logger.info(f"Image URL: {image_url}")
         image = await download_image(image_url)
         if image:
             image_base64 = image_to_base64(image)

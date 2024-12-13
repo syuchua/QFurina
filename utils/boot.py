@@ -17,7 +17,7 @@ import asyncio, threading, os, time, schedule, subprocess, sys
 from app.process.task_manger import task_manager
 from app.Core.config import config
 from app.logger import clean_old_logs, logger
-from app.DB.database import MongoDB
+from app.DB.database import MongoDB,db
 from app.Core.message import process_group_message, process_private_message, process_telegram_message
 from commands.reset import session_timeout_check
 from app.Core.decorators import error_handler
@@ -147,8 +147,8 @@ def schedule_jobs():
     schedule.every().day.at(config.DISABLE_TIME).do(shutdown_gracefully)
     schedule.every().day.at(config.ENABLE_TIME).do(restart_main_loop)
 
-    # 每14天02:00清理过期聊天信息
-    schedule.every().day.at("02:00").do(partial(mongo_db.clean_old_messages, days=14, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups))
+    # 每30天02:00清理过期聊天信息
+    schedule.every().day.at("02:00").do(partial(mongo_db.clean_old_messages, days=30, exempt_user_ids=exempt_users, exempt_context_ids=exempt_groups))
     # 每14天03:00清理过期日志
     schedule.every().day.at("03:00").do(partial(clean_old_logs, days=14))
 
@@ -203,8 +203,8 @@ async def task():
     # 加载插件
     await plugin_manager.load_plugins()
 
-    # 启动会话管理器
-    # await start_session_workers()
+    # 初始化数据库
+    await db.init_async()
 
     # 启动WebUI
     webui_thread = await run_streamlit()

@@ -7,46 +7,64 @@
                 "max_tokens": 1024
             },
             "timeout": 120,
-            "available_models": ["claude-3-5-sonnet-20240620"]
+            "available_models": [
+                "claude-3-5-sonnet-20240620"
+            ]
         },
         "moonshot": {
             "api_key": "",
             "base_url": "https://api.moonshot.cn/v1",
             "args": {},
             "timeout": 120,
-            "available_models": ["moonshot-v1-8k"]
+            "available_models": [
+                "moonshot-v1-8k"
+            ]
         },
         "deepseek": {
             "api_key": "sk-1234567890",
             "base_url": "https://api.deepseek.com",
             "args": {},
             "timeout": 120,
-            "available_models": [""]
+            "available_models": [
+                ""
+            ]
         },
         "ChatGlm": {
-            "api_key": "",
-            "base_url": "https://open.bigmodel.cn/api/paas/v4",
+            "api_key": "sk-CdHIE9KpjBk2QO86D7B6E8A3E22b4eB2BaB07544E7Fb80A2",
+            "base_url": "https://api.yuchu.me/v1",
             "args": {},
             "timeout": 120,
-            "available_models": ["glm-4", "glm-4-air", "glm-4-flash", "glm-4-0520", "glm-4-airx", "charglm-3", "glm-4v"]
+            "available_models": [
+                "glm-4",
+                "glm-4-air",
+                "glm-4-flash",
+                "glm-4-0520",
+                "glm-4-airx",
+                "charglm-3",
+                "glm-4v"
+            ]
         },
         "Gemini": {
-            "api_key": "",
-            "base_url": "https://localhost:3000/v1",
+            "api_key": "sk-CdHIE9KpjBk2QO86D7B6E8A3E22b4eB2BaB07544E7Fb80A2",
+            "base_url": "https://api.yuchu.me/v1",
             "args": {},
             "timeout": 120,
-            "available_models": ["gemini-1.5-flash", "gemini-1.5-pro-latest", "gemini-pro"]
+            "available_models": [
+                "gemini-1.5-flash-latest",
+                "gemini-1.5-pro-latest",
+                "gemini-pro"
+            ]
         },
         "Any_Other": {
             "api_key": "sk-1234567890",
             "base_url": "https://api.any_other.com/v1",
             "args": {},
             "timeout": 120,
-            "available_models": [""]
+            "available_models": [
+                ""
+            ]
         }
-        
     },
-    "model": "claude-3-5-sonnet-20240620",
+    "model": "gemini-1.5-flash-latest",
     "vision": true
-  }
-  
+}

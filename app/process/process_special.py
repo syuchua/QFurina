@@ -17,7 +17,6 @@ from utils.model_request import get_chat_response
 class SpecialHandler:
     def __init__(self):
         self.handlers = {
-            #r'(天气|气温|温度|下雨|阴天|晴天|多云|预报)': self.handle_weather_request,
             r'#voice': self.handle_voice_synthesis,
             r'#recognize': self.handle_image_recognition_request,
             r'#search': self.handle_search_request,
@@ -68,12 +67,13 @@ class SpecialHandler:
             voice_text = voice_text.replace('\n', '.')
             voice_text = re.sub(r'\[.*?\]', '', voice_text)
             voice_text = re.sub(r'\(.*?\)', '', voice_text)
+            logger.info(f"Voice synthesis request: {voice_text}")
             try:
                 audio_filename = await asyncio.wait_for(generate_voice(voice_text), timeout=10)
                 if audio_filename:
                     response = f"[CQ:record,file=http://my_qbot:4321/data/voice/{audio_filename}]" if is_docker else f"[CQ:record,file=http://localhost:4321/data/voice/{audio_filename}]"
                     await send_msg(msg_type, recipient_id, response)
-                    db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
+                    await db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
                     return True, response
                 else:
                     await send_msg(msg_type, recipient_id, "语音合成失败。")
@@ -84,31 +84,50 @@ class SpecialHandler:
         return False, None
 
     async def handle_image_recognition_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
-        recognition_result = await handle_image_recognition(response_text[10:].strip())
+        logger.info(f"Handling image recognition request: user_input={user_input}, response_text={response_text}")
+        recognition_result = await handle_image_recognition(user_input)
         if recognition_result:
             response = f"识别结果：{recognition_result}"
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
+            await db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
             return True, response
-        return False, None
+        else:
+            # 当未找到图片时，给出提示
+            await send_msg(msg_type, recipient_id, "未找到要识别的图片，请确保您发送了图片。")
+            return False, None
 
     async def handle_search_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
         search_pattern = re.compile(r"#search\s*(.*)")
-        search_match = search_pattern.search(response_text)
+        
+        # 首先尝试在 user_input 中匹配
+        search_match = search_pattern.search(user_input)
+        if not search_match:
+            # 如果在 user_input 中未找到，再在 response_text 中匹配
+            search_match = search_pattern.search(response_text)
+        
         if search_match:
             search_query = search_match.group(1).strip()
+            if not search_query:
+                # 如果未提供搜索关键词，给出提示
+                await send_msg(msg_type, recipient_id, "请在 #search 后面提供搜索关键词。")
+                return True, None
             try:
                 await send_msg(msg_type, recipient_id, f"正在搜索：{search_query}")
                 search_result = await handle_web_search(search_query)
                 if search_result:
                     is_github = search_query.startswith("https://github.com/")
                     ai_response = await self.generate_search_response(search_query, search_result, is_github)
-                    # 不再直接发送消息，而是返回生成的回复
+                    # 直接发送生成的回复
+                    await send_msg(msg_type, recipient_id, ai_response)
+                    await db.insert_chat_message(user_id, search_query, ai_response, context_type, context_id, platform='onebot')
                     return True, ai_response
                 else:
+                    logger.error("搜索没有返回结果。")
+                    await send_msg(msg_type, recipient_id, "抱歉，搜索没有返回结果。")
                     return True, "抱歉，搜索没有返回结果。"
             except Exception as e:
-                logger.error(f"Error during web search: {e}")
+                logger.error(f"搜索过程中出现错误: {e}")
+                await send_msg(msg_type, recipient_id, "搜索过程中出现错误，请稍后再试。")
                 return True, "搜索过程中出现错误，请稍后再试。"
         return False, None
 
@@ -139,7 +158,7 @@ class SpecialHandler:
         if image_url:
             response = f"[CQ:image,file={image_url}]"
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
+            await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
 
@@ -148,7 +167,7 @@ class SpecialHandler:
         if voice_url:
             response = f"[CQ:record,file={voice_url}]"
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
+            await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
 
@@ -160,13 +179,8 @@ class SpecialHandler:
             else:
                 response = music_response
             await send_msg(msg_type, recipient_id, response)
-            db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
+            await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
             return True, response
         return False, None
-
-
-    @staticmethod
-    def is_chinese(char):
-        return '\u4e00' <= char <= '\u9fff'
 
 special_handler = SpecialHandler()

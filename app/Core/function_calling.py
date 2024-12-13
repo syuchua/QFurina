@@ -83,22 +83,16 @@ async def handle_voice_request(user_input):
     return None
 
 async def handle_image_recognition(user_input):
+    logger.debug(f"Handling image recognition: user_input={user_input}")
     match = IMAGE_CQ_PATTERN.search(user_input)
     if match:
-        # logger.info(f"Recognize image: {match.group(0)}")
+        logger.info(f"Recognize image: {match.group(0)}")
         image_cq_code = match.group(0)
         response = await recognize_image(image_cq_code)
         if response:
             return response
-        
-    recognize_match = RECOGNIZE_PATTERN.search(user_input)
-    if recognize_match:
-        # logger.info(f"Recognize image: {recognize_match.group(1)}")
-        image_cq_code = recognize_match.group(1).strip()
-        response = await recognize_image(image_cq_code)
-        if response:
-            return response
-
+    # 处理未匹配的情况
+    logger.warning("No image found in user input for recognition.")
     return None
 
 class MusicHandler:

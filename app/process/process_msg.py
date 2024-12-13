@@ -1,5 +1,5 @@
 # process.py
-import asyncio, random
+import asyncio
 from functools import wraps
 from ..Core.message_utils import MessageManager
 from ..plugin.plugin_manager import plugin_manager
@@ -73,7 +73,7 @@ def process_chat_message(msg_type):
                     "group_id": get_group_id(rev) if msg_type == 'group' else None,
                     "recipient_id": recipient_id
                 }
-                db.insert_user_info(user_info)
+                await db.insert_user_info(user_info)
 
                 # 调用原始函数，可能会修改 user_input 或执行其他特定逻辑
                 modified_input = await func(rev, *args, **kwargs)
@@ -138,12 +138,12 @@ def process_chat_message(msg_type):
                     messages.append({"role": "system", "content": f"Mid-term memory: {memories['mid_term']}"})
 
                 # 获取最近的消息
-                recent_messages = db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, platform='onebot', limit=10)
+                recent_messages = await db.get_recent_messages(user_id=recipient_id, context_type=context_type, context_id=context_id, platform='onebot', limit=10)
                 user_in_recent = any(msg['role'] == 'user' and msg['content'].startswith(f"{username}:") for msg in recent_messages)  
 
                 # 如果用户消息不在最近消息中，则添加用户历史消息
                 if not user_in_recent:
-                    user_historical = db.get_user_historical_messages(user_id=user_id, context_type=context_type, context_id=context_id, limit=3)
+                    user_historical = await db.get_user_historical_messages(user_id=user_id, context_type=context_type, context_id=context_id, limit=3)
                     insert_index = len(recent_messages) // 2
                     recent_messages = recent_messages[:insert_index] + user_historical + recent_messages[insert_index:]
                     if len(recent_messages) > 20:
@@ -158,7 +158,7 @@ def process_chat_message(msg_type):
                     response_text = await timed_get_chat_response(messages)
 
                 if response_text:
-                    db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform='onebot')
+                    await db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform='onebot')
                     
                     # 将 AI 响应添加到记忆生成器
                     await memory_generator.add_message({
@@ -234,14 +234,14 @@ async def handle_telegram_message(message):
         )
 
         # 获取最近的消息
-        recent_messages = db.get_recent_messages(user_id=chat_id, context_type=context_type, context_id=context_id, platform='telegram', limit=10)
+        recent_messages = await db.get_recent_messages(user_id=chat_id, context_type=context_type, context_id=context_id, platform='telegram', limit=10)
         messages.extend(recent_messages)
         messages.append({"role": "user", "content": user_input})
 
         response_text = await timed_get_chat_response(messages)
 
         if response_text:
-            db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform='telegram')
+            await db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform='telegram')
             
             # 检查 AI 响应中的特殊处理
             handled, result = await special_handler.process_special(user_input, response_text, 'telegram', chat_id, user_id, context_type, context_id)
