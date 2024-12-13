@@ -3,24 +3,26 @@ import os, time
 from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import MongoClient, ASCENDING
-
-from ..Core.decorators import async_timed
 from ..logger import logger
 from ..Core.config import Config
+import motor.motor_asyncio
 
 config = Config.get_instance()
 
 class MongoDB:
     def __init__(self):
+        self.client = None
+        self.db = None
+
+    async def init_async(self):
         self.client = self._create_client()
         self.db = self.client[self._get_db_name()]
-        self.ensure_indexes()
+        await self.ensure_indexes()  # 确保在事件循环中创建索引
 
-    # 创建MongoDBclient，如果IS_DOCKER为true，则连接到docker容器中的mongo，否则连接到本地mongo
     def _create_client(self):
         is_docker = os.environ.get('IS_DOCKER', 'false').lower() == 'true'
         mongo_uri = os.getenv('MONGO_URI', 'mongodb://mongo:27017' if is_docker else 'mongodb://localhost:27017')
-        return MongoClient(mongo_uri)
+        return motor.motor_asyncio.AsyncIOMotorClient(mongo_uri)
 
     def _get_db_name(self):
         return os.getenv('MONGO_DB_NAME', 'chatbot_db')
@@ -28,23 +30,27 @@ class MongoDB:
     def get_collection(self, collection_name):
         return self.db[collection_name]
 
-    # 创建索引
-    def ensure_indexes(self):
+    async def ensure_indexes(self):
         try:
             users_collection = self.get_collection('users')
-            users_collection.create_index('user_id', unique=True)
+            await users_collection.create_index('user_id', unique=True)
             
             messages_collection = self.get_collection('messages')
-            messages_collection.create_index([('timestamp', ASCENDING)])
-            messages_collection.create_index([('user_id', ASCENDING), ('context_type', ASCENDING), ('context_id', ASCENDING), ('platform', ASCENDING)])
+            await messages_collection.create_index([('timestamp', ASCENDING)])
+            await messages_collection.create_index([
+                ('user_id', ASCENDING),
+                ('context_type', ASCENDING),
+                ('context_id', ASCENDING),
+                ('platform', ASCENDING)
+            ])
         except Exception as e:
             logger.error(f"Error ensuring indexes: {e}")
 
     # 插入用户信息
-    def insert_user_info(self, user_info):
+    async def insert_user_info(self, user_info):
         try:
             users_collection = self.get_collection('users')
-            users_collection.update_one(
+            await users_collection.update_one(
                 {'user_id': user_info['user_id']},
                 {'$set': user_info},
                 upsert=True
@@ -54,7 +60,7 @@ class MongoDB:
 
 
     # 插入聊天信息
-    def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id, platform):
+    async def insert_chat_message(self, user_id, user_input, response_text, context_type, context_id, platform):
         try:
             if response_text:
                 messages_collection = self.get_collection('messages')
@@ -67,7 +73,7 @@ class MongoDB:
                     'platform': platform,
                     'timestamp': time.time()
                 }
-                messages_collection.insert_one(message_data)
+                await messages_collection.insert_one(message_data)
         except Exception as e:
             logger.error(f"Error inserting chat message: {e}")
 
@@ -75,7 +81,7 @@ class MongoDB:
 
     # 获取最近的聊天信息
     #@async_timed()
-    def get_recent_messages(self, user_id, context_type, context_id, platform,limit=10):
+    async def get_recent_messages(self, user_id, context_type, context_id, platform,limit=10):
         try:
             messages_collection = self.get_collection('messages')
             query = {"context_type": context_type,
@@ -87,10 +93,11 @@ class MongoDB:
             elif context_type == 'group':
                 query["context_id"] = context_id
 
-            messages = messages_collection.find(query).sort("timestamp", -1).limit(limit)
+            cursor = messages_collection.find(query).sort("timestamp", -1).limit(limit)
+            messages = await cursor.to_list(length=limit)
             messages_list = []
 
-            for msg in reversed(list(messages)):
+            for msg in reversed(messages):
                 user_input = msg.get('user_input', '(no user input)')
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
@@ -104,7 +111,7 @@ class MongoDB:
             return []
 
     # 获取用户的历史聊天信息
-    def get_user_historical_messages(self, user_id, context_type, context_id, limit=5):
+    async def get_user_historical_messages(self, user_id, context_type, context_id, limit=5):
         try:
             messages_collection = self.get_collection('messages')
             query = {
@@ -112,10 +119,11 @@ class MongoDB:
                 "context_type": context_type,
                 "context_id": context_id
             }
-            messages = messages_collection.find(query).sort("timestamp", -1).limit(limit * 2)
+            cursor = messages_collection.find(query).sort("timestamp", -1).limit(limit * 2)
+            messages = await cursor.to_list(length=limit)
             messages_list = []
 
-            for msg in reversed(list(messages)):
+            for msg in reversed(messages):
                 user_input = msg.get('user_input', '(no user input)')
                 response_text = msg.get('response_text', '(no response)')
                 if user_input and response_text and response_text != '(no response)':
