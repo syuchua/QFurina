@@ -130,3 +130,11 @@ config.yaml
 # Ignore other sensitive files
 credentials.json
 secrets.json
+
+# Ignore media files
+*.wav
+*.mp3
+
+# Ignore secret in plugins
+plugins/AIDrawingPlugin/
+plugins/WeatherPlugin/
