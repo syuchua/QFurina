@@ -132,8 +132,8 @@ credentials.json
 secrets.json
 
 # Ignore media files
-*.wav
-*.mp3
+data/music/
+data/voice/
 
 # Ignore secret in plugins
 plugins/AIDrawingPlugin/
