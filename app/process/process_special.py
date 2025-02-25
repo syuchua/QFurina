@@ -15,7 +15,6 @@ from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
 from .process_image import detect_image_in_message
 from utils.client import recognize_image
-from ..Core.message_utils import MessageManager
 
 class SpecialHandler:
     def __init__(self):
@@ -130,32 +129,7 @@ class SpecialHandler:
                 search_result = await handle_web_search(search_query)
                 if search_result:
                     is_github = search_query.startswith("https://github.com/")
-                    
-                    # 获取用户信息和聊天上下文
-                    username = await db.get_username(user_id)
-                    
-                    # 使用 MessageManager 创建消息上下文
-                    context_messages, _ = await MessageManager.create_message_context(
-                        "", user_id, username, context_type, context_id
-                    )
-                    
-                    # 获取最近的几条对话作为上下文
-                    recent_messages = await db.get_recent_messages(
-                        user_id=recipient_id, 
-                        context_type=context_type, 
-                        context_id=context_id, 
-                        platform='onebot', 
-                        limit=5
-                    )
-                    
-                    # 构建完整的提示信息，包含系统人设和上下文
-                    ai_response = await self.generate_search_response_with_context(
-                        search_query, 
-                        search_result, 
-                        is_github,
-                        context_messages + recent_messages
-                    )
-                    
+                    ai_response = await self.generate_search_response(search_query, search_result, is_github)
                     # 直接发送生成的回复
                     await send_msg(msg_type, recipient_id, ai_response)
                     await db.insert_chat_message(user_id, search_query, ai_response, context_type, context_id, platform='onebot')
@@ -170,45 +144,26 @@ class SpecialHandler:
                 return True, "搜索过程中出现错误，请稍后再试。"
         return False, None
 
-    async def generate_search_response_with_context(self, query: str, search_results: str, is_github: bool = False, context_messages=None) -> str:
-        """根据搜索结果和上下文生成AI回复"""
-        
-        # 从配置中获取系统人设
-        from ..Core.config import config
-        system_message = config.SYSTEM_MESSAGE.get("role", "你是一个智能助手")
-        
-        # 构建带有上下文的系统提示
-        system_prompt = f"""
-        {system_message}
-        
+    async def generate_search_response(self, query: str, search_results: str, is_github: bool = False) -> str:
+        """根据搜索结果生成AI回复"""
+        prompt = f"""
         用户搜索查询: "{query}"
         
         搜索结果:
         {search_results}
         
-        请根据以上搜索结果和聊天上下文，生成一个信息丰富且符合你的人设的回复。回复应该：
+        请根据以上搜索结果，生成一个简洁、信息丰富且自然的回复。回复应该：
         1. 总结搜索结果的主要信息
-        2. 保持与你的人设一致的语气和风格
-        3. 提供对查询的直接回答（如果可能）
+        2. 提供对查询的直接回答（如果可能）
+        3. 使用自然、对话式的语言
         4. 如果搜索结果中包含多个观点，请简要说明不同的观点
-        5. 与之前的对话保持连贯性
+        5. 如果适当，可以提供进一步探索的建议
         {"6. 重点介绍GitHub项目的主要功能和特点" if is_github else ""}
         
         请以对话的方式回复，就像你在与用户直接交谈一样。回复应该是中文的。
         """
-        
-        messages = [{"role": "system", "content": system_prompt}]
-        
-        # 添加上下文消息
-        if context_messages:
-            # 只保留最近的几条消息作为上下文
-            context_slice = context_messages[-5:] if len(context_messages) > 5 else context_messages
-            messages.extend(context_slice)
-            
-        # 添加最终的用户查询
-        messages.append({"role": "user", "content": f"请根据搜索结果回答关于'{query}'的问题，保持你的人设风格。"})
-        
-        response = await get_chat_response(messages)
+
+        response = await get_chat_response([{"role": "user", "content": prompt}])
         return response.strip()
 
     async def handle_image_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
