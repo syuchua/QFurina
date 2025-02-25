@@ -101,6 +101,7 @@ class SpecialHandler:
                 "当前API不支持图像识别", "图像太大"
             ]):
                 response = f"识别结果：{recognition_result}"
+                logger.info(f"识别结果：{recognition_result}")
                 await send_msg(msg_type, recipient_id, response)
                 await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
                 return True, response
