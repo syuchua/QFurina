@@ -136,5 +136,5 @@ data/music/
 data/voice/
 
 # Ignore secret in plugins
-plugins/AIDrawingPlugin/
-plugins/WeatherPlugin/
+plugins/WeatherPlugin
+plugins/AIDrawingPlugin

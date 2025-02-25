@@ -52,26 +52,45 @@ async def download_image(image_url):
                 logger.error(f"Error opening the image: {e}")
                 return None
 
+def detect_image_format(image):
+    """
+    检测图像格式
+    
+    参数:
+    image (PIL.Image): PIL图像对象
+    
+    返回:
+    str: 检测到的图像格式 (jpeg, png, etc.)
+    """
+    format_lower = image.format.lower() if image.format else "jpeg"
+    if format_lower == "jpg":
+        format_lower = "jpeg"
+    return format_lower
+
 def image_to_base64(image):
     """
-    将图像转换为base64编码
+    将图像转换为base64编码，保留原始格式
     """
+    format_lower = detect_image_format(image)
     buffered = BytesIO()
-    image.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode()
+    image.save(buffered, format=format_lower.upper())
+    return base64.b64encode(buffered.getvalue()).decode(), format_lower
 
 async def get_cq_image_base64(cq_code):
     """
     异步提取CQ码图片，并转换为Base64编码
+    
+    返回:
+    tuple: (image_base64, image_format) 图像的base64编码和格式
     """
     image_url = decode_cq_code(cq_code)
     if image_url:
         logger.info(f"Image URL: {image_url}")
         image = await download_image(image_url)
         if image:
-            image_base64 = image_to_base64(image)
-            return image_base64
+            image_base64, image_format = image_to_base64(image)
+            return image_base64, image_format
         else:
-            raise ValueError("Failed to download or open the image")
+            raise ValueError("无法下载或打开图像")
     else:
-        raise ValueError("No valid image URL found in CQ code")
+        raise ValueError("CQ码中未找到有效的图像URL")

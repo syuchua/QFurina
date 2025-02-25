@@ -1,6 +1,9 @@
 # 使用官方的 Python 3.11 镜像作为基础镜像
 FROM python:3.11
 
+# 设置时区
+ENV TZ=Asia/Shanghai
+
 # 设置工作目录
 WORKDIR /app
 

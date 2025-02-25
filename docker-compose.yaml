@@ -1,0 +1,56 @@
+version: '3'
+services:
+  my_qbot:
+    image: syuchua01/my_qbot:dev
+    container_name: my_qbot
+    ports:
+      - "8011:8011"  # WebSocket
+      - "4321:4321"  # 文件上传
+      - "8501:8501"  #WebUI
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/app/logs
+    environment:
+      - IS_DOCKER=true
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB_NAME=chatbot_db
+      - CONNECTION_TYPE=ws_reverse  # 设置连接类型为 WebSocket
+      - WS_HOST=0.0.0.0  # WebSocket 主机
+      - WS_PORT=8011  # WebSocket 端口
+    depends_on:
+      - mongo
+    networks:
+      - qfurina_network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - qfurina_network
+
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat
+    environment:
+      - ACCOUNT=123456789 # 切换为你的机器人QQ号
+      - WSR_ENABLE=true
+      - WS_URLS=["ws://my_qbot:8011/ws"]
+    ports:
+      - "6099:6099"
+    restart: always
+    depends_on:
+      - my_qbot
+    networks:
+      - qfurina_network
+
+volumes:
+  mongo_data:
+
+networks:
+  qfurina_network:
+    driver: bridge
