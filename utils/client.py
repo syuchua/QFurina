@@ -138,42 +138,73 @@ async def generate_image(prompt):
     except Exception as e:
         raise Exception(f"图像生成API请求过程中出现错误: {e}")
 
-async def recognize_image(cq_code):
+@retry(max_retries=3, delay=1.0)
+async def recognize_image(cq_code, client=None, supports_recognition=None):
     """
     识别CQ码中的图像内容。
 
     参数:
     cq_code (str): 包含图像信息的CQ码。
+    client (ModelClient, optional): 模型客户端实例
+    supports_recognition (bool, optional): 是否支持图像识别
 
     返回:
     str: 图像识别的结果文本。
-
-    异常:
-    Exception: 如果API不支持图像识别或识别过程中出现错误。
     """
+    # 依赖注入而非循环导入
+    if client is None or supports_recognition is None:
+        global default_config, model_config
+        client, supports_recognition = get_client(default_config, model_config)
+
     # 检查是否支持图像识别
-    if not supports_image_recognition:
-        raise Exception("API does not support image recognition.")
+    if not supports_recognition:
+        logger.error("API不支持图像识别")
+        return "当前API不支持图像识别功能"
+        
+    MAX_IMAGE_SIZE = 1024 * 1024 * 4  # 4MB 限制
         
     try:
-        # 从CQ码中提取图片base64编码
-        image_data = await get_cq_image_base64(cq_code)
+        # 从CQ码中提取图片base64编码和格式
+        image_data, image_format = await get_cq_image_base64(cq_code)
         if not image_data:
-            raise ValueError("Failed to get image data from CQ code.")
+            raise ValueError("无法从CQ码中提取图像数据")
         
-        logger.info(f"Sending image for recognition")
+        # 检查图像大小
+        if len(image_data) > MAX_IMAGE_SIZE:
+            logger.warning(f"图像大小超过限制: {len(image_data)} 字节")
+            return "图像太大，无法处理，请提供较小的图像"
         
+        logger.info(f"发送图像识别请求，格式: {image_format}, 大小: {len(image_data)} 字节")
+        
+        alter_image = {
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": f"image/{image_format}",
+                "data": image_data
+            }
+        }
+
         # 准备请求，直接传递图像数据
-        messages = f"识别图片并用中文回复，图片base64编码:{image_data}"
+        messages = [{"role": "user", "content": [
+            {"type": "text", "text": "识别图片并用中文回复:"},
+            alter_image
+        ]}]
         
         # 使用支持图像识别的API请求
-        from .model_request import get_chat_response
+        from utils.model_request import get_chat_response
         response_text = await get_chat_response(messages)
         
         return response_text
+    except ValueError as e:
+        logger.error(f"图像数据提取错误: {e}")
+        return f"无法处理图像数据: {str(e)}"
+    except aiohttp.ClientError as e:
+        logger.error(f"API请求网络错误: {e}")
+        return "网络连接问题，请稍后重试"
     except Exception as e:
-        logger.error(f"Error during image recognition: {e}")
-        return "图像识别时出现错误，请稍后重试。"
+        logger.error(f"图像识别时出现错误: {e}")
+        return f"图像识别时出现错误: {str(e)}，请稍后重试"
     
 default_config, model_config = load_config()
 client, supports_image_recognition = get_client(default_config, model_config)
