@@ -1,7 +1,7 @@
 {
     "api_key": "sk-CdHIE9KpjBk2QO86D7B6E8A3E22b4eB2BaB07544E7Fb80A2",
     "model": "gpt-3.5-turbo",
-    "proxy_api_base": "http://api.openai.com/v1",
+    "base_url": "https://api.openai.com/v1",
     "nicknames": [
         "芙芙",
         "芙宁娜",
@@ -34,6 +34,7 @@
     ],
     "reply_probability": 0.024,
     "r18": 2,
+    "auto_image_recognition": true,
     "audio_save_path": "data/voice",
     "message_queue_size": 10,
     "voice_service_url": "http://154.40.59.71:5000/tts",
@@ -42,6 +43,5 @@
         "example",
         "ai_drawing",
         "weather"
-    ],
-    "base_url": "https://api.openai.com/v1"
+    ]
 }

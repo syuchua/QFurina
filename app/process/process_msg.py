@@ -18,6 +18,7 @@ from .memory_generator import memory_generator
 from ..Core.adapter.onebotv11 import (
     get_user_id, get_group_id, get_message_content, get_username
 )
+from .process_image import process_image, generate_image_response
 
 # 自定义回复
 def get_dialogue_response(user_input):
@@ -123,6 +124,23 @@ def process_chat_message(msg_type):
                         # 如果不是插件命令,则处理为系统命令
                         await handle_command(full_command, msg_type, user_info, send_msg, context_type, context_id)
                         return
+
+                # 处理图像识别
+                auto_recognition_enabled = config.AUTO_IMAGE_RECOGNITION
+                if auto_recognition_enabled:
+                    image_handled, image_description, processed_input = await process_image(user_input)
+                    if image_handled and image_description:
+                        response = await generate_image_response(image_description, processed_input)
+                        await send_msg(msg_type, recipient_id, response)
+                        await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
+                        
+                        # 添加到记忆生成器
+                        await memory_generator.add_message({
+                            "role": "assistant",
+                            "content": response
+                        }, context_type, context_id)
+                        
+                        return  # 图片已处理，无需继续
 
                 # 使用 MessageManager 创建消息上下文
                 messages, user_input = MessageManager.create_message_context(

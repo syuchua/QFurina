@@ -4,7 +4,7 @@ from typing import Optional, List
 from utils.search import get_github_repo_info, get_webpage_content, web_search
 from app.logger import logger
 from utils.voice_service import generate_voice
-from utils.client import client, generate_image, recognize_image, model_config
+from utils.client import client, generate_image, model_config
 from utils.lolicon import fetch_image
 from ..Core.decorators import async_timed, rate_limit
 
@@ -83,17 +83,50 @@ async def handle_voice_request(user_input):
     return None
 
 async def handle_image_recognition(user_input):
-    logger.debug(f"Handling image recognition: user_input={user_input}")
+    """
+    从用户输入中提取图像CQ码并进行识别
+    
+    参数:
+    user_input (str): 用户输入消息
+    
+    返回:
+    str: 识别结果或None（如果未找到图像或识别失败）
+    """
+    logger.debug(f"处理图像识别请求: user_input={user_input}")
     match = IMAGE_CQ_PATTERN.search(user_input)
-    if match:
-        logger.info(f"Recognize image: {match.group(0)}")
-        image_cq_code = match.group(0)
-        response = await recognize_image(image_cq_code)
-        if response:
-            return response
-    # 处理未匹配的情况
-    logger.warning("No image found in user input for recognition.")
-    return None
+    
+    if not match:
+        logger.warning("用户输入中未找到图像")
+        return None
+    
+    # 获取完整的CQ码
+    image_cq_code = match.group(0)
+    logger.info(f"识别图像: {image_cq_code}")
+    
+    try:
+        # 调用优化后的recognize_image函数
+        from utils.client import recognize_image
+        result = await recognize_image(image_cq_code)
+        
+        # 检查是否为错误信息
+        error_indicators = [
+            "无法处理图像数据", 
+            "网络连接问题", 
+            "图像识别时出现错误",
+            "当前API不支持图像识别",
+            "图像太大"
+        ]
+        
+        if any(indicator in result for indicator in error_indicators):
+            logger.warning(f"图像识别失败: {result}")
+            return None  # 返回None以便上层处理"未找到图片"的消息
+        
+        logger.info(f"图像识别成功，结果长度: {len(result)}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"图像识别处理过程中出现异常: {e}")
+        return None
 
 class MusicHandler:
     def __init__(self):

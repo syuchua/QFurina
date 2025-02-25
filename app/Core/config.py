@@ -45,6 +45,7 @@ class Config:
         self.VOICE_SERVICE_URL = self.config_data.get('voice_service_url')
         self.CHA_NAME = self.config_data.get('cha_name')
         self.R18 = self.config_data.get('r18')
+        self.AUTO_IMAGE_RECOGNITION = self.config_data.get('auto_image_recognition')
         self.ADMIN_TITLES = self.config_data.get('admin_titles')
         self.MESSAGE_QUEUE_SIZE = self.config_data.get('message_queue_size', 10)
         self.CONNECTION_TYPE = self.config_data.get('connection_type', 'http')

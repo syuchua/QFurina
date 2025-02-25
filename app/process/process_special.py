@@ -7,12 +7,15 @@ from ..DB.database import db
 from ..Core.decorators import async_timed, error_handler
 from ..logger import logger
 from ..Core.function_calling import (
-    handle_web_search, handle_image_recognition, handle_image_request, 
+    handle_web_search, handle_image_request, 
     handle_voice_request, music_handler
 )
 from .send import send_msg
 from utils.voice_service import generate_voice
 from utils.model_request import get_chat_response
+from .process_image import detect_image_in_message
+from utils.client import recognize_image
+from ..Core.message_utils import MessageManager
 
 class SpecialHandler:
     def __init__(self):
@@ -84,17 +87,27 @@ class SpecialHandler:
         return False, None
 
     async def handle_image_recognition_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
-        logger.info(f"Handling image recognition request: user_input={user_input}, response_text={response_text}")
-        recognition_result = await handle_image_recognition(user_input)
-        if recognition_result:
-            response = f"识别结果：{recognition_result}"
-            await send_msg(msg_type, recipient_id, response)
-            await db.insert_chat_message(user_id, response_text, response, context_type, context_id, platform='onebot')
-            return True, response
-        else:
-            # 当未找到图片时，给出提示
-            await send_msg(msg_type, recipient_id, "未找到要识别的图片，请确保您发送了图片。")
-            return False, None
+        logger.info(f"处理图像识别请求: user_input={user_input}")
+        
+        # 使用 process_image.py 中的函数检测图片
+        contains_image, image_cq_code, _ = await detect_image_in_message(user_input)
+        
+        if contains_image:
+            # 使用 client.py 中的 recognize_image 函数
+            recognition_result = await recognize_image(image_cq_code)
+            
+            if recognition_result and not any(indicator in recognition_result for indicator in [
+                "无法处理图像数据", "网络连接问题", "图像识别时出现错误", 
+                "当前API不支持图像识别", "图像太大"
+            ]):
+                response = f"识别结果：{recognition_result}"
+                await send_msg(msg_type, recipient_id, response)
+                await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
+                return True, response
+        
+        # 当未找到图片或识别失败时，给出提示
+        await send_msg(msg_type, recipient_id, "未找到要识别的图片，请确保您发送了图片。")
+        return False, None
 
     async def handle_search_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
         search_pattern = re.compile(r"#search\s*(.*)")
@@ -116,7 +129,32 @@ class SpecialHandler:
                 search_result = await handle_web_search(search_query)
                 if search_result:
                     is_github = search_query.startswith("https://github.com/")
-                    ai_response = await self.generate_search_response(search_query, search_result, is_github)
+                    
+                    # 获取用户信息和聊天上下文
+                    username = await db.get_username(user_id)
+                    
+                    # 使用 MessageManager 创建消息上下文
+                    context_messages, _ = await MessageManager.create_message_context(
+                        "", user_id, username, context_type, context_id
+                    )
+                    
+                    # 获取最近的几条对话作为上下文
+                    recent_messages = await db.get_recent_messages(
+                        user_id=recipient_id, 
+                        context_type=context_type, 
+                        context_id=context_id, 
+                        platform='onebot', 
+                        limit=5
+                    )
+                    
+                    # 构建完整的提示信息，包含系统人设和上下文
+                    ai_response = await self.generate_search_response_with_context(
+                        search_query, 
+                        search_result, 
+                        is_github,
+                        context_messages + recent_messages
+                    )
+                    
                     # 直接发送生成的回复
                     await send_msg(msg_type, recipient_id, ai_response)
                     await db.insert_chat_message(user_id, search_query, ai_response, context_type, context_id, platform='onebot')
@@ -131,26 +169,45 @@ class SpecialHandler:
                 return True, "搜索过程中出现错误，请稍后再试。"
         return False, None
 
-    async def generate_search_response(self, query: str, search_results: str, is_github: bool = False) -> str:
-        """根据搜索结果生成AI回复"""
-        prompt = f"""
+    async def generate_search_response_with_context(self, query: str, search_results: str, is_github: bool = False, context_messages=None) -> str:
+        """根据搜索结果和上下文生成AI回复"""
+        
+        # 从配置中获取系统人设
+        from ..Core.config import config
+        system_message = config.SYSTEM_MESSAGE.get("role", "你是一个智能助手")
+        
+        # 构建带有上下文的系统提示
+        system_prompt = f"""
+        {system_message}
+        
         用户搜索查询: "{query}"
         
         搜索结果:
         {search_results}
         
-        请根据以上搜索结果，生成一个简洁、信息丰富且自然的回复。回复应该：
+        请根据以上搜索结果和聊天上下文，生成一个信息丰富且符合你的人设的回复。回复应该：
         1. 总结搜索结果的主要信息
-        2. 提供对查询的直接回答（如果可能）
-        3. 使用自然、对话式的语言
+        2. 保持与你的人设一致的语气和风格
+        3. 提供对查询的直接回答（如果可能）
         4. 如果搜索结果中包含多个观点，请简要说明不同的观点
-        5. 如果适当，可以提供进一步探索的建议
+        5. 与之前的对话保持连贯性
         {"6. 重点介绍GitHub项目的主要功能和特点" if is_github else ""}
         
         请以对话的方式回复，就像你在与用户直接交谈一样。回复应该是中文的。
         """
-
-        response = await get_chat_response([{"role": "user", "content": prompt}])
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # 添加上下文消息
+        if context_messages:
+            # 只保留最近的几条消息作为上下文
+            context_slice = context_messages[-5:] if len(context_messages) > 5 else context_messages
+            messages.extend(context_slice)
+            
+        # 添加最终的用户查询
+        messages.append({"role": "user", "content": f"请根据搜索结果回答关于'{query}'的问题，保持你的人设风格。"})
+        
+        response = await get_chat_response(messages)
         return response.strip()
 
     async def handle_image_request(self, user_input, response_text, msg_type, recipient_id, user_id, context_type, context_id):
