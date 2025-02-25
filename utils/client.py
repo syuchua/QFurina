@@ -204,7 +204,7 @@ async def recognize_image(cq_code, client=None, supports_recognition=None):
         return "网络连接问题，请稍后重试"
     except Exception as e:
         logger.error(f"图像识别时出现错误: {e}")
-        return f"图像识别时出现错误: {str(e)}, 请稍后重试"
+        return f"图像识别时出现错误: {str(e)},请稍后重试"
     
 default_config, model_config = load_config()
 client, supports_image_recognition = get_client(default_config, model_config)

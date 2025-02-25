@@ -60,7 +60,7 @@ def detect_image_format(image):
     image (PIL.Image): PIL图像对象
     
     返回:
-    str: 检测到的图像格式 (jpeg, png, etc.)
+    str: 检测到的图像格式 (jpeg, png, etc..)
     """
     format_lower = image.format.lower() if image.format else "jpeg"
     if format_lower == "jpg":
