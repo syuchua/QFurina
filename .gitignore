@@ -114,10 +114,10 @@ logs/
 *.local
 *.sublime-workspace
 
-# Ignore data directories
-# data/image/
-# data/voice/
-# data/temp/
+Ignore data directories
+data/image/
+data/voice/
+data/temp/
 
 # Ignore database files
 *.sqlite3
