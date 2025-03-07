@@ -18,7 +18,7 @@ from .memory_generator import memory_generator
 from ..Core.adapter.onebotv11 import (
     get_user_id, get_group_id, get_message_content, get_username
 )
-from .process_image import process_image, generate_image_response
+from .process_image import process_image
 
 # 自定义回复
 def get_dialogue_response(user_input):
