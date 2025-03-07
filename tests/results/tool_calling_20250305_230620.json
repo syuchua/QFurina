@@ -1,0 +1,34 @@
+{
+  "test_name": "tool_calling",
+  "timestamp": "20250305_230620",
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "我想了解最近中国的科技发展情况"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "search_web",
+          "description": "搜索网络获取最新信息",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "搜索查询"
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "response": "None"
+}

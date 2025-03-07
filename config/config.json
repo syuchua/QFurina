@@ -37,7 +37,7 @@
     "auto_image_recognition": true,
     "audio_save_path": "data/voice",
     "message_queue_size": 10,
-    "voice_service_url": "http://154.40.59.71:5000/tts",
+    "voice_service_url": "http://localhost:5000/tts",
     "cha_name": "芙宁娜",
     "enabled_plugins": [
         "example",

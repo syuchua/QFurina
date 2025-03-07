@@ -5,7 +5,7 @@
 """
 from functools import wraps
 from typing import Callable, Any, Dict
-from ..process.process_msg import process_chat_message, handle_telegram_message
+from ..process.process_msg import process_chat_message
 from ..logger import logger
 from ..process.send import send_msg
 
@@ -17,9 +17,6 @@ def pipeline(platform: str):
                 if platform == 'onebot':
                     msg_type = 'private' if message['message_type'] == 'private' else 'group'
                     return await process_chat_message(msg_type)(func)(message, *args, **kwargs)
-                elif platform == 'telegram':
-                    logger.info(f"Received Telegram message: {message}")
-                    return await handle_telegram_message(message)
                 else:
                     raise ValueError(f"Unsupported platform: {platform}")
             except Exception as e:

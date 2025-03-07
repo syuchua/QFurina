@@ -1,0 +1,11 @@
+{
+  "test_name": "text_completion",
+  "timestamp": "20250305_232643",
+  "request": [
+    {
+      "role": "user",
+      "content": "你好，请用中文介绍一下自己"
+    }
+  ],
+  "response": "调用API错误: API错误 400: {\"error\":{\"message\":\"API key not valid. Please pass a valid API key. (request id: 20250305232643435960539xobldMUv)\",\"type\":\"\",\"param\":\"\",\"code\":400}}"
+}

@@ -30,7 +30,7 @@
             ]
         },
         "ChatGlm": {
-            "api_key": "sk-CdHIE9KpjBk2QO86D7B6E8A3E22b4eB2BaB07544E7Fb80A2",
+            "api_key": "",
             "base_url": "https://api.yuchu.me/v1",
             "args": {},
             "timeout": 120,
@@ -45,14 +45,15 @@
             ]
         },
         "Gemini": {
-            "api_key": "sk-CdHIE9KpjBk2QO86D7B6E8A3E22b4eB2BaB07544E7Fb80A2",
+            "api_key": "",
             "base_url": "https://api.yuchu.me/v1",
             "args": {},
             "timeout": 120,
             "available_models": [
                 "gemini-1.5-flash-latest",
                 "gemini-1.5-pro-latest",
-                "gemini-pro"
+                "gemini-pro",
+                "gemini-2.0-flash"
             ]
         },
         "Any_Other": {
@@ -65,6 +66,6 @@
             ]
         }
     },
-    "model": "gemini-1.5-flash-latest",
+    "model": "gemini-2.0-flash",
     "vision": true
 }

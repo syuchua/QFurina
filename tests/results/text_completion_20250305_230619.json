@@ -1,0 +1,11 @@
+{
+  "test_name": "text_completion",
+  "timestamp": "20250305_230619",
+  "request": [
+    {
+      "role": "user",
+      "content": "你好，请用中文介绍一下自己"
+    }
+  ],
+  "response": "None"
+}

@@ -128,16 +128,16 @@ def process_chat_message(msg_type):
                 # 处理图像识别
                 auto_recognition_enabled = config.AUTO_IMAGE_RECOGNITION
                 if auto_recognition_enabled:
-                    image_handled, image_description, processed_input = await process_image(user_input)
-                    if image_handled and image_description:
-                        response = await generate_image_response(image_description, processed_input)
-                        await send_msg(msg_type, recipient_id, response)
-                        await db.insert_chat_message(user_id, user_input, response, context_type, context_id, platform='onebot')
+                    image_handled, image_response, processed_input = await process_image(user_input)
+                    logger.info(f"Image handled: {image_handled}, Image response: {image_response}, Processed input: {processed_input}")
+                    if image_handled and image_response:
+                        await send_msg(msg_type, recipient_id, image_response)
+                        await db.insert_chat_message(user_id, user_input, image_response, context_type, context_id, platform='onebot')
                         
                         # 添加到记忆生成器
                         await memory_generator.add_message({
                             "role": "assistant",
-                            "content": response
+                            "content": image_response
                         }, context_type, context_id)
                         
                         return  # 图片已处理，无需继续
@@ -207,135 +207,3 @@ def process_chat_message(msg_type):
         
         return wrapper
     return decorator
-
-async def handle_telegram_message(message):
-    try:
-        user_input = message.get('text', '')
-        user_id = message['from']['id']
-        username = message['from'].get('username', 'Unknown')
-        chat_id = message['chat']['id']
-        context_type = 'private' if message['chat']['type'] == 'private' else 'group'
-        context_id = chat_id
-
-        # 构建消息对象
-        message_obj = {
-            "content": user_input,
-            "user_id": user_id,
-            "username": username,
-            "recipient_id": chat_id,
-            "context_type": context_type,
-            "context_id": context_id
-        }
-
-        # 处理插件消息
-        plugin_response = await process_plugin_message(message_obj)
-        if plugin_response:
-            await send_msg('telegram', chat_id, plugin_response)
-            return message
-
-        # 检查是否为命令
-        full_command = await handle_command_request(user_input)
-        if full_command:
-            plugin_commands = plugin_manager.get_all_plugin_commands()
-            command = full_command.split()[0].lower()
-            
-            if command in plugin_commands:
-                await process_plugin_command(full_command, context_type, message_obj, lambda rid, msg: send_msg('telegram', rid, msg), context_type, context_id)
-                return message
-            else:
-                await handle_command(full_command, context_type, message_obj, lambda rid, msg: send_msg('telegram', rid, msg), context_type, context_id)
-                return message
-
-        # 使用 MessageManager 创建消息上下文
-        messages, user_input = MessageManager.create_message_context(
-            user_input, user_id, username, context_type, context_id
-        )
-
-        # 获取最近的消息
-        recent_messages = await db.get_recent_messages(user_id=chat_id, context_type=context_type, context_id=context_id, platform='telegram', limit=10)
-        messages.extend(recent_messages)
-        messages.append({"role": "user", "content": user_input})
-
-        response_text = await timed_get_chat_response(messages)
-
-        if response_text:
-            await db.insert_chat_message(user_id, user_input, response_text, context_type, context_id, platform='telegram')
-            
-            # 检查 AI 响应中的特殊处理
-            handled, result = await special_handler.process_special(user_input, response_text, 'telegram', chat_id, user_id, context_type, context_id)
-            if handled:
-                await send_msg('telegram', chat_id, result)
-                return message
-            
-            # 如果没有特殊处理,继续正常的消息处理流程
-            response_with_username = f"{username},{response_text}" if user_id != config.ADMIN_ID else response_text
-
-            # 使用消息截断器发送最终响应
-            response_parts = split_message(response_with_username)
-            for part in response_parts:
-                await send_msg('telegram', chat_id, part)
-                await asyncio.sleep(0.3)
-
-        # 将响应添加到原始消息对象中
-        message['response'] = response_text
-
-        return message # 返回修改后的消息对象
-    
-    except Exception as e:
-        logger.error(f"Error in handle_telegram_message: {e}", exc_info=True)
-        await send_msg('telegram', chat_id, "阿巴阿巴,出错了。")
-        return message
-    
-async def handle_telegram_updates(bot):
-    offset = 0
-    while True:
-        try:
-            updates = await bot.get_updates(offset=offset, timeout=30)
-            logger.debug(f"Received Telegram updates: {updates}")
-
-            if not isinstance(updates, list):
-                logger.error(f"Unexpected updates type: {type(updates)}")
-                await asyncio.sleep(5)
-                continue
-
-            for update in updates:
-                if not isinstance(update, dict):
-                    logger.error(f"Unexpected update type: {type(update)}")
-                    continue
-
-                update_id = update.get('update_id')
-                if update_id is None:
-                    logger.error("Update missing 'update_id'")
-                    continue
-
-                offset = update_id + 1
-
-                message = update.get('message')
-                if message is None:
-                    logger.debug(f"Update {update_id} has no 'message'")
-                    continue
-
-                if not isinstance(message, dict):
-                    logger.error(f"Unexpected message type: {type(message)}")
-                    continue
-
-                # 处理消息
-                response = await handle_telegram_message(message)
-                
-                # 检查 response 是否为字符串（来自 get_chat_response）
-                if isinstance(response, str):
-                    # 如果是字符串，直接发送响应
-                    chat_id = message['chat']['id']
-                    await bot.send_message(chat_id=chat_id, text=response)
-                elif isinstance(response, dict):
-                    # 如果是字典，可能包含了原始消息和响应
-                    if 'response' in response:
-                        chat_id = message['chat']['id']
-                        await bot.send_message(chat_id=chat_id, text=response['response'])
-                else:
-                    logger.error(f"Unexpected response type from process_telegram_message: {type(response)}")
-
-        except Exception as e:
-            logger.error(f"Error in handle_telegram_updates: {e}", exc_info=True)
-
-        await asyncio.sleep(1)

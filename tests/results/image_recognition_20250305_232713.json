@@ -1,0 +1,9 @@
+{
+  "test_name": "image_recognition",
+  "timestamp": "20250305_232713",
+  "request": {
+    "image": "base64_encoded_image",
+    "query": "这张图片展示了什么内容？"
+  },
+  "response": "调用API错误: Connection timeout to host https://api.yuchu.me/v1/chat/completions"
+}

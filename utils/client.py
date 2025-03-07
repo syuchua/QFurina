@@ -176,20 +176,15 @@ async def recognize_image(cq_code, client=None, supports_recognition=None):
         
         logger.info(f"发送图像识别请求，格式: {image_format}, 大小: {len(image_data)} 字节")
         
-        alter_image = {
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": f"image/{image_format}",
-                "data": image_data
-            }
-        }
+
 
         # 准备请求，直接传递图像数据
-        messages = [{"role": "user", "content": [
-            {"type": "text", "text": "识别图片并用中文回复:"},
-            alter_image
-        ]}]
+        messages = [
+            {"role": "user", "content": [
+                {"type": "text", "text": "用中文详细描述这张图片"},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
+            ]}
+        ]
         
         # 使用支持图像识别的API请求
         from utils.model_request import get_chat_response

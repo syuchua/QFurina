@@ -1,0 +1,23 @@
+{
+  "test_name": "complex_conversation",
+  "timestamp": "20250305_230621",
+  "request": [
+    {
+      "role": "system",
+      "content": "你是一个有用的AI助手，今天是2025年3月5日。"
+    },
+    {
+      "role": "user",
+      "content": "今天天气怎么样？"
+    },
+    {
+      "role": "assistant",
+      "content": "我无法知道具体的天气情况，因为我没有实时获取天气数据的能力。建议您查看天气预报应用或网站获取最准确的天气信息。"
+    },
+    {
+      "role": "user",
+      "content": "你能帮我总结一下关于人工智能的最新研究方向吗？"
+    }
+  ],
+  "response": "None"
+}

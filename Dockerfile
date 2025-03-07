@@ -14,7 +14,7 @@ WORKDIR /app
 COPY . /app
 
 # 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 暴露端口8011用于WebSocket连接
 EXPOSE 8011
