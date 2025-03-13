@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://cdn.jsdelivr.net/gh/mazhijia/jsdeliver@main/img/20240913203908.png" alt="MY_QBOT Logo" width="200"/>
+  <img src="![](https://cdn.jsdelivr.net/gh/syuchua/jsdeliver@main/img/%E3%80%90%E5%93%B2%E9%A3%8E%E5%A3%81%E7%BA%B8%E3%80%912024-10-26%2021%2039%2014.png)" alt="QFurina Logo" width="200"/>
   <h1>QFurina - QQ机器人项目</h1>
   <p>
     <strong>一个功能强大、易于扩展的Python QQ机器人</strong>
