@@ -20,8 +20,8 @@ async def handle_help_command(msg_type, user_info, send_msg):
             "16. 使用 'block_word'命令+add/remove管理屏蔽词。\n"
             "17. 使用 'enable_plugin'命令+插件名 启用插件。\n"
             "18. 使用 'disable_plugin'命令+插件名 禁用插件。\n"
-            "19. 使用 'plugin_list'命令获取所有插件列表。\n"
+            "19. 使用 'list_plugins'命令获取所有插件列表。\n"
             "20. 使用 'plugin_info'命令+插件名 获取指定插件信息。\n"
-            "21. 使用 'plugin_download'命令+GitHub仓库URL 下载指定插件。\n"
+            "21. 使用 'plugin'命令+GitHub仓库URL 下载指定插件。\n"
         )
         await  send_msg(msg_type, user_info["recipient_id"], help_message)
